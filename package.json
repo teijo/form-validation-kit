@@ -1,0 +1,15 @@
+{
+  "name": "form-validation-kit",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "livereloadx": "~0.3.7"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Teijo Laine",
+  "license": "MIT"
+}

@@ -1,0 +1,80 @@
+<html>
+<head>
+  <script type="text/javascript" src="bower_components/bacon/dist/Bacon.js"></script>
+  <script type="text/javascript" src="http://localhost:35729/livereload.js"></script>
+</head>
+<body onload="init()">
+<form>
+  <input id="textInput" type="text" name="textInput" onkeyup="input(event)" />
+  <label id="textInputResult" for="textInput"></label>
+</form>
+<script>
+  STATE_OK = 1;
+  STATE_INVALID = 0;
+  STATE_PENDING = -1;
+
+  function stateColor(state) {
+    console.log('state: ' + state)
+    switch (state) {
+      case STATE_OK:
+            return 'lime';
+      case STATE_INVALID:
+            return 'pink';
+      case STATE_PENDING:
+            return 'aqua';
+      default:
+            throw new Error('Invalid state: ' + state)
+    }
+  }
+
+  var inputElement = function() { return document.getElementById("textInput") };
+  var inputResultElement = function() { return document.getElementById("textInputResult") };
+
+  function setPending(state) {
+    return function() {
+      inputElement().style.backgroundColor = stateColor(state);
+      setResult(state)
+    }
+  }
+
+  function setResult(result) {
+    inputResultElement().innerText = "State: " + result;
+  }
+
+  var remote = new Bacon.Bus();
+
+  var validationStream = remote.flatMapLatest(function(value) {
+    return Bacon.fromCallback(function(callback) {
+      setTimeout(function() {
+        if (typeof(value) !== 'string') {
+          throw new Error('Given input not string: ' + value)
+        }
+        callback({value: value, isValid: value.length > 5});
+      }, 100);
+    })
+  });
+
+  var requestStream = remote.onValue(setPending(STATE_PENDING));
+  var responseStream = validationStream.map('.isValid').onValue(function(isValid) {
+    setPending(isValid ? STATE_OK : STATE_INVALID)();
+  });
+
+  validationStream.log('validation');
+
+  function input(event) {
+    remote.push(event.target.value);
+  }
+
+  function init() {
+    var node = inputElement();
+    var testInput = "Test Input";
+    Bacon.sequentially(200, testInput.split("")).onValue(function(char) {
+      var event = new Event("keyup");
+      event.keyCode = char.charCodeAt(0);
+      node.value = node.value + char;
+      node.dispatchEvent(event);
+    });
+  }
+</script>
+</body>
+</html>
