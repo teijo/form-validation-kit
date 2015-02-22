@@ -14,65 +14,44 @@
   STATE_PENDING = -1;
   STATE_QUEUED = -2;
 
-  function stateColor(state) {
-    switch (state) {
-      case STATE_QUEUED:
-        return 'lightgray';
-      case STATE_PENDING:
-        return 'aqua';
-      case STATE_OK:
-            return 'lime';
-      case STATE_INVALID:
-            return 'pink';
-      default:
-            throw new Error('Invalid state: ' + state)
-    }
-  }
-
-  var inputElement = function() { return document.getElementById("textInput") };
-  var inputResultElement = function() { return document.getElementById("textInputResult") };
-
   function newValidation(stateChangeCb, validatorList) {
-    var remote = new Bacon.Bus();
-    var outputStream = remote.throttle(100);
+    var input = new Bacon.Bus();
+    var throttledInput = input.throttle(100);
 
-    var validationStream = outputStream.flatMapLatest(function(value) {
+    var validationStream = throttledInput.flatMapLatest(function(value) {
       if (typeof(value) !== 'string') {
         throw new Error('Given input not string: ' + value)
       }
       return Bacon.combineAsArray(validatorList.map(function(validator) {
         return Bacon.fromCallback(function(done) {
-          function response(isValid, errorMessage) {
+          validator(value, function(isValid, errorMessage) {
             done({state: isValid ? STATE_OK : STATE_INVALID, errorMessage: errorMessage || ""});
-          }
-          validator(value, response);
+          });
         });
       }));
     });
 
-    function collectErrors(agg, response) {
-      if (response.state === STATE_INVALID) {
-        agg.state = STATE_INVALID;
-        agg.errorMessageList.push(response.errorMessage);
-      }
-      return agg;
-    }
-
-    var queueStream = remote.map({state: STATE_QUEUED});
-    var requestStream = outputStream.map({state: STATE_PENDING});
-    var responseStream = validationStream.map(function(responseList) {
-      return responseList.reduce(collectErrors, {state: STATE_OK, errorMessageList: []});
+    var requestQueued = input.map({state: STATE_QUEUED, errorMessageList: []});
+    var requestSent = throttledInput.map({state: STATE_PENDING, errorMessageList: []});
+    var response = validationStream.map(function(responseList) {
+      return responseList.reduce(function (agg, response) {
+        if (response.state === STATE_INVALID) {
+          agg.state = STATE_INVALID;
+          agg.errorMessageList = agg.errorMessageList.concat(response.errorMessage);
+        }
+        return agg;
+      }, {state: STATE_OK, errorMessageList: []});
     });
-    var stateStream = Bacon.mergeAll(
-        queueStream,
-        requestStream,
-        responseStream
-    );
-    stateStream.skipDuplicates().onValue(stateChangeCb);
+
+    Bacon.mergeAll(
+        requestQueued,
+        requestSent,
+        response
+    ).skipDuplicates().onValue(stateChangeCb);
 
     return {
       evaluate: function(value) {
-        remote.push(value);
+        input.push(value);
       }
     }
   }
@@ -89,15 +68,35 @@
     }, 100);
   }
 
-  function stateChange(response) {
-    inputElement().style.backgroundColor = stateColor(response.state);
-    inputResultElement().innerText = response.errorMessageList.join(", ");
+  var inputElement = function() { return document.getElementById("textInput") };
+  var inputResultElement = function() { return document.getElementById("textInputResult") };
+
+  function stateChange() {
+    function stateColor(state) {
+      switch (state) {
+        case STATE_QUEUED:
+          return 'lightgray';
+        case STATE_PENDING:
+          return 'aqua';
+        case STATE_OK:
+          return 'lime';
+        case STATE_INVALID:
+          return 'pink';
+        default:
+          throw new Error('Invalid state: ' + state)
+      }
+    }
+
+    return function(response) {
+      inputElement().style.backgroundColor = stateColor(response.state);
+      inputResultElement().innerText = response.errorMessageList.join(", ");
+    };
   }
 
-  var validation = newValidation(stateChange, [duplicateValidator, lengthValidator]);
+  var validateLengthAndDuplicates = newValidation(stateChange(), [duplicateValidator, lengthValidator]);
 
   function input(event) {
-    validation.evaluate(event.target.value);
+    validateLengthAndDuplicates.evaluate(event.target.value);
   }
 
   function emulateTyping() {
