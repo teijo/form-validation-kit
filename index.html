@@ -18,7 +18,7 @@
     }
   </style>
 </head>
-<body onload="emulateTyping()">
+<body onload="testInput()">
 <script>
   function visualize(element) {
     return function(response) {
@@ -59,28 +59,28 @@
 
   function failingValidator(value, done, error) {
     setTimeout(function() {
-      if (value === 'fail')
-        error("Validation timed out");
+      if (value.length > 5)
+        error("Validation timed out, too long input");
       else
         done(true);
-    }, 300);
+    }, 50);
   }
 </script>
 <h2>Sample form</h2>
 <form>
   <dl>
     <li>
-      <p>Text input</p>
+      <p>textHandler()</p>
       <input id="textInput" type="text" onkeyup="textHandler(event)" />
       <label for="textInput"></label>
     </li>
     <li>
-      <p>Number input</p>
+      <p>numberHandler()</p>
       <input id="numberInput" type="text" onkeyup="numberHandler(event)"/>
       <label for="numberInput"></label>
     </li>
     <li>
-      <p>Timeout (write fail)</p>
+      <p>failingHandler()</p>
       <input id="failingInput" type="text" onkeyup="failingHandler(event)"/>
       <label for="failingInput"></label>
     </li>
@@ -114,15 +114,19 @@
   }
 </script>
 <script>
-  function emulateTyping() {
-    var node = document.getElementById("textInput");
-    var testInput = "Test Input";
-    Bacon.sequentially(200, testInput.split("")).onValue(function(char) {
+  function emulateTyping(elementId, testInput, interval) {
+    var node = document.getElementById(elementId);
+    Bacon.sequentially(interval, testInput.split("")).onValue(function(char) {
       var event = new Event("keyup");
       event.keyCode = char.charCodeAt(0);
       node.value = node.value + char;
       node.dispatchEvent(event);
     });
+  }
+  function testInput() {
+    emulateTyping('textInput', "Test some long text", 150);
+    emulateTyping('numberInput', "1234ABCD", 400);
+    emulateTyping('failingInput', "timeout", 300);
   }
 </script>
 </body>
