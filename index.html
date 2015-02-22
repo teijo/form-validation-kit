@@ -99,7 +99,7 @@
 
   var textValidation = form.validator(duplicateValidator("Test"), lengthValidator(6));
   var numberValidation = form.validator(regexpValidator(/^[0-9]*$/));
-  var timeoutValidation = form.validator(failingValidator);
+  var timeoutValidation = form.validator(failingValidator, {throttle: 1000});
 
   function textHandler(event) {
     textValidation.evaluate(event.target.value, visualize(event.target));
@@ -110,7 +110,7 @@
   }
 
   function failingHandler(event) {
-    timeoutValidation.evaluate(event.target.value, visualize(event.target), {throttle: 3000});
+    timeoutValidation.evaluate(event.target.value, visualize(event.target));
   }
 </script>
 <script>
