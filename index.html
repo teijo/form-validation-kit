@@ -3,7 +3,7 @@
   <script type="text/javascript" src="bower_components/bacon/dist/Bacon.js"></script>
   <script type="text/javascript" src="http://localhost:35729/livereload.js"></script>
 </head>
-<body onload="init()">
+<body onload="emulateTyping()">
 <form>
   <input id="textInput" type="text" name="textInput" onkeyup="input(event)" />
   <label id="textInputResult" for="textInput"></label>
@@ -41,19 +41,33 @@
         throw new Error('Given input not string: ' + value)
       }
       return Bacon.combineAsArray(validatorList.map(function(validator) {
-        return Bacon.fromCallback(function(done) { validator(value, done); });
+        return Bacon.fromCallback(function(done) {
+          function response(isValid, errorMessage) {
+            done({state: isValid ? STATE_OK : STATE_INVALID, errorMessage: errorMessage || ""});
+          }
+          validator(value, response);
+        });
       }));
     });
 
-    var queueStream = remote.map(STATE_QUEUED);
-    var requestStream = outputStream.map(STATE_PENDING);
-    var responseStream = validationStream.map(function(responses) {
-      return responses.reduce(function(agg, isValid) {
-        return agg && isValid;
-      }, true) ? STATE_OK : STATE_INVALID;
-    });
+    function collectErrors(agg, response) {
+      if (response.state === STATE_INVALID) {
+        agg.state = STATE_INVALID;
+        agg.errorMessageList.push(response.errorMessage);
+      }
+      return agg;
+    }
 
-    var stateStream = Bacon.mergeAll(queueStream, requestStream, responseStream);
+    var queueStream = remote.map({state: STATE_QUEUED});
+    var requestStream = outputStream.map({state: STATE_PENDING});
+    var responseStream = validationStream.map(function(responseList) {
+      return responseList.reduce(collectErrors, {state: STATE_OK, errorMessageList: []});
+    });
+    var stateStream = Bacon.mergeAll(
+        queueStream,
+        requestStream,
+        responseStream
+    );
     stateStream.skipDuplicates().onValue(stateChangeCb);
 
     return {
@@ -65,19 +79,19 @@
 
   function duplicateValidator(value, done) {
     setTimeout(function() {
-      done(value !== "Test");
+      done(value !== "Test", "Reserved text");
     }, 50);
   }
 
   function lengthValidator(value, done) {
     setTimeout(function() {
-      done(value.length > 2);
+      done(value.length > 5, "Input too short");
     }, 100);
   }
 
-  function stateChange(state) {
-    inputElement().style.backgroundColor = stateColor(state);
-    inputResultElement().innerText = "State: " + state;
+  function stateChange(response) {
+    inputElement().style.backgroundColor = stateColor(response.state);
+    inputResultElement().innerText = response.errorMessageList.join(", ");
   }
 
   var validation = newValidation(stateChange, [duplicateValidator, lengthValidator]);
@@ -86,7 +100,7 @@
     validation.evaluate(event.target.value);
   }
 
-  function init() {
+  function emulateTyping() {
     var node = inputElement();
     var testInput = "Test Input";
     Bacon.sequentially(200, testInput.split("")).onValue(function(char) {
