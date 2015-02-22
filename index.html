@@ -34,41 +34,48 @@
 
   function setPending(state) {
     inputElement().style.backgroundColor = stateColor(state);
-    setResult(state)
+    inputResultElement().innerText = "State: " + state;
   }
 
-  function setResult(result) {
-    inputResultElement().innerText = "State: " + result;
-  }
+  function newValidation(asyncCheck, stateChangeCb) {
+    var remote = new Bacon.Bus();
+    var outputStream = remote.throttle(100);
 
-  var remote = new Bacon.Bus();
-  var outputStream = remote.throttle(100);
+    var validationStream = outputStream.flatMapLatest(function(value) {
+      if (typeof(value) !== 'string') {
+        throw new Error('Given input not string: ' + value)
+      }
+      return Bacon.fromCallback(asyncCheck(value))
+    });
 
-  var validationStream = outputStream.flatMapLatest(function(value) {
-    if (typeof(value) !== 'string') {
-      throw new Error('Given input not string: ' + value)
+    var queueStream = remote.map(STATE_QUEUED);
+    var requestStream = outputStream.map(STATE_PENDING);
+    var responseStream = validationStream.map(function(response) {
+      return response.isValid ? STATE_OK : STATE_INVALID;
+    });
+
+    var stateStream = Bacon.mergeAll(queueStream, requestStream, responseStream);
+    stateStream.skipDuplicates().onValue(stateChangeCb);
+
+    return {
+      sendValue: function(value) {
+        remote.push(value);
+      }
     }
-    var checkLength = function (callback) {
-      setTimeout(function () {
-        callback({value: value, isValid: value.length > 5});
+  }
+
+  var asyncLengthCheck = function(value) {
+    return function(done) {
+      setTimeout(function() {
+        done({value: value, isValid: value.length > 5});
       }, 100);
-    };
-    return Bacon.fromCallback(checkLength)
-  });
+    }
+  };
 
-  var queueStream = remote.map(STATE_QUEUED);
-  var requestStream = outputStream.map(STATE_PENDING);
-  var responseStream = validationStream.map(function(response) {
-    return response.isValid ? STATE_OK : STATE_INVALID;
-  });
-
-  var stateStream = Bacon.mergeAll(queueStream, requestStream, responseStream);
-  stateStream.skipDuplicates().onValue(setPending);
-
-  validationStream.log('validation');
+  var validation = newValidation(asyncLengthCheck, setPending);
 
   function input(event) {
-    remote.push(event.target.value);
+    validation.sendValue(event.target.value);
   }
 
   function init() {
