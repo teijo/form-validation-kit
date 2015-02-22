@@ -23,6 +23,7 @@
   function visualize(element) {
     return function(response) {
       var colors = {};
+      colors[State.ERROR] = 'red';
       colors[State.WAITING] = 'lightgray';
       colors[State.VALIDATING] = 'aqua';
       colors[State.VALID] = 'lime';
@@ -55,17 +56,30 @@
       done(value.match(regexp) !== null, "Not matching pattern " + regexp);
     }
   }
+
+  function failingValidator(value, done, error) {
+    setTimeout(function() {
+      error("Validation timed out");
+    }, 300);
+  }
 </script>
 <h2>Sample form</h2>
 <form>
   <dl>
     <li>
-      <input id="textInput" type="text" onkeyup="textInputHandler(event)" />
+      <p>Text input</p>
+      <input id="textInput" type="text" onkeyup="textHandler(event)" />
       <label for="textInput"></label>
     </li>
     <li>
-      <input id="numberInput" type="text" onkeyup="numberInputHandler(event)"/>
+      <p>Number input</p>
+      <input id="numberInput" type="text" onkeyup="numberHandler(event)"/>
       <label for="numberInput"></label>
+    </li>
+    <li>
+      <p>Timeout</p>
+      <input id="failingInput" type="text" onkeyup="failingHandler(event)"/>
+      <label for="failingInput"></label>
     </li>
     <li>
       <input id="formSubmit" type="submit"/>
@@ -85,13 +99,18 @@
 
   var textValidation = form.validator(duplicateValidator("Test"), lengthValidator(6));
   var numberValidation = form.validator(regexpValidator(/^[0-9]*$/), lengthValidator(2));
+  var timeoutValidation = form.validator(failingValidator);
 
-  function textInputHandler(event) {
+  function textHandler(event) {
     textValidation.evaluate(event.target.value, visualize(event.target));
   }
 
-  function numberInputHandler(event) {
+  function numberHandler(event) {
     numberValidation.evaluate(event.target.value, visualize(event.target));
+  }
+
+  function failingHandler(event) {
+    timeoutValidation.evaluate(event.target.value, visualize(event.target));
   }
 </script>
 <script>

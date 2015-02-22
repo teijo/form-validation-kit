@@ -1,4 +1,6 @@
 var State = {
+  // Error occuring during validation, e.g. timeout
+  ERROR: -3,
   // Input received but validator invocation is waiting for throttle cooldown
   WAITING: -2,
   // Validator invoked with latest value and waiting for response
@@ -17,12 +19,23 @@ function Validation(/*...validators*/) {
   var validationStream = throttledInput.flatMapLatest(function(value) {
     return Bacon.combineAsArray(validatorList.map(function(validator) {
       return Bacon.fromCallback(function(done) {
-        validator(value, function(isValid, errorMessage) {
-          done({
-            state: isValid ? State.VALID : State.INVALID,
-            errorMessage: errorMessage || ""
-          });
-        });
+        validator(
+            value,
+            // Validation done
+            function(isValid, errorMessage) {
+              done({
+                state: isValid ? State.VALID : State.INVALID,
+                errorMessage: errorMessage || ""
+              });
+            },
+            // Validation error
+            function(errorMessage) {
+              done({
+                state: State.ERROR,
+                errorMessage: errorMessage
+              })
+            }
+        );
       });
     }));
   });
@@ -37,9 +50,12 @@ function Validation(/*...validators*/) {
   });
   var response = validationStream.map(function(responseList) {
     return responseList.reduce(function(agg, response) {
-      if (response.state === State.INVALID) {
-        agg.state = State.INVALID;
-        agg.errorMessageList = agg.errorMessageList.concat(response.errorMessage);
+      switch (response.state) {
+        case State.INVALID:
+        case State.ERROR:
+          agg.state = response.state;
+          agg.errorMessageList = agg.errorMessageList.concat(response.errorMessage);
+          break;
       }
       return agg;
     }, {state: State.VALID, errorMessageList: []});
@@ -74,7 +90,7 @@ function Form(stateCallback) {
   function addValidatorStateStream(stateStream) {
     stateStreams.push(stateStream);
     Bacon.combineAsArray(stateStreams).map(function(validators) {
-      var PRECEDENCE = [State.WAITING, State.VALIDATING, State.INVALID, State.VALID];
+      var PRECEDENCE = [State.ERROR, State.WAITING, State.VALIDATING, State.INVALID, State.VALID];
       return validators.reduce(function(agg, state) {
         return (PRECEDENCE.indexOf(state) < PRECEDENCE.indexOf(agg)) ? state : agg;
       })
