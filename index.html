@@ -32,12 +32,7 @@
   var inputElement = function() { return document.getElementById("textInput") };
   var inputResultElement = function() { return document.getElementById("textInputResult") };
 
-  function setPending(state) {
-    inputElement().style.backgroundColor = stateColor(state);
-    inputResultElement().innerText = "State: " + state;
-  }
-
-  function newValidation(asyncCheck, stateChangeCb) {
+  function newValidation(stateChangeCb, validatorList) {
     var remote = new Bacon.Bus();
     var outputStream = remote.throttle(100);
 
@@ -45,37 +40,54 @@
       if (typeof(value) !== 'string') {
         throw new Error('Given input not string: ' + value)
       }
-      return Bacon.fromCallback(asyncCheck(value))
+      return Bacon.combineAsArray(validatorList.map(function(validator) {
+        return Bacon.fromCallback(validator(value))
+      }));
     });
 
     var queueStream = remote.map(STATE_QUEUED);
     var requestStream = outputStream.map(STATE_PENDING);
-    var responseStream = validationStream.map(function(response) {
-      return response.isValid ? STATE_OK : STATE_INVALID;
+    var responseStream = validationStream.map(function(responses) {
+      return responses.reduce(function(agg, response) {
+        return agg && response.isValid;
+      }, true) ? STATE_OK : STATE_INVALID;
     });
 
     var stateStream = Bacon.mergeAll(queueStream, requestStream, responseStream);
     stateStream.skipDuplicates().onValue(stateChangeCb);
 
     return {
-      sendValue: function(value) {
+      evaluate: function(value) {
         remote.push(value);
       }
     }
   }
 
-  var asyncLengthCheck = function(value) {
+  function duplicateValidator(value) {
     return function(done) {
       setTimeout(function() {
-        done({value: value, isValid: value.length > 5});
+        done({value: value, isValid: value !== "Test"});
+      }, 50);
+    }
+  }
+
+  function lengthValidator(value) {
+    return function(done) {
+      setTimeout(function() {
+        done({value: value, isValid: value.length > 2});
       }, 100);
     }
-  };
+  }
 
-  var validation = newValidation(asyncLengthCheck, setPending);
+  function stateChange(state) {
+    inputElement().style.backgroundColor = stateColor(state);
+    inputResultElement().innerText = "State: " + state;
+  }
+
+  var validation = newValidation(stateChange, [duplicateValidator, lengthValidator]);
 
   function input(event) {
-    validation.sendValue(event.target.value);
+    validation.evaluate(event.target.value);
   }
 
   function init() {
