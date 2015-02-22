@@ -48,8 +48,8 @@
     var queueStream = remote.map(STATE_QUEUED);
     var requestStream = outputStream.map(STATE_PENDING);
     var responseStream = validationStream.map(function(responses) {
-      return responses.reduce(function(agg, response) {
-        return agg && response.isValid;
+      return responses.reduce(function(agg, isValid) {
+        return agg && isValid;
       }, true) ? STATE_OK : STATE_INVALID;
     });
 
@@ -66,7 +66,7 @@
   function duplicateValidator(value) {
     return function(done) {
       setTimeout(function() {
-        done({value: value, isValid: value !== "Test"});
+        done(value !== "Test");
       }, 50);
     }
   }
@@ -74,7 +74,7 @@
   function lengthValidator(value) {
     return function(done) {
       setTimeout(function() {
-        done({value: value, isValid: value.length > 2});
+        done(value.length > 2);
       }, 100);
     }
   }
