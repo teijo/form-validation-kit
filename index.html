@@ -13,12 +13,16 @@
 <form>
   <dl>
     <li>
-      <input id="textInput" type="text" name="textInput" onkeyup="textInputHandler(event)" />
+      <input id="textInput" type="text" onkeyup="textInputHandler(event)" />
       <label for="textInput"></label>
     </li>
     <li>
-      <input id="numberInput" type="text" name="textInput" onkeyup="numberInputHandler(event)"/>
+      <input id="numberInput" type="text" onkeyup="numberInputHandler(event)"/>
       <label for="numberInput"></label>
+    </li>
+    <li>
+      <input id="formSubmit" type="submit"/>
+      <label for="formSubmit"></label>
     </li>
   </dl>
 </form>
@@ -66,6 +70,7 @@
     }
 
     return {
+      state: state.map('.state'),
       evaluate: function(value, cb) {
         state.subscribe(function(event) {
           var response = event.value();
@@ -107,8 +112,44 @@
     }
   }
 
-  var validateLengthAndDuplicates = Validation(duplicateValidator, lengthValidator);
-  var validateNumber = Validation(regexpValidator(/^[0-9]*$/));
+  function Form(stateCallback) {
+    var stateStreams = [];
+    function addValidatorStateStream(stateStream) {
+      stateStreams.push(stateStream);
+      Bacon.combineAsArray(stateStreams).map(function(validators) {
+        return validators.reduce(function(agg, state) {
+          switch (state) {
+            case STATE_QUEUED: return STATE_QUEUED;
+            case STATE_PENDING: return STATE_PENDING;
+            case STATE_INVALID: return STATE_INVALID;
+            case STATE_OK: return STATE_OK;
+            default: throw new Error("Invalid state");
+          }
+        })
+      }).map(function(combinedState) {
+        return {state: combinedState, errorMessageList: []};
+      }).skipDuplicates().onValue(stateCallback);
+    }
+
+    addValidatorStateStream(Bacon.constant(STATE_OK));
+
+    return {
+      validator: function() {
+        var validator = Validation.apply(this, arguments);
+        addValidatorStateStream(validator.state);
+        return {evaluate: validator.evaluate};
+      }
+    }
+  }
+
+  var form = Form(function(state) {
+    var button = document.getElementById('formSubmit');
+    button.disabled = (state.state === STATE_OK) ? '' : 'disabled';
+    visualize(button);
+  });
+
+  var validateLengthAndDuplicates = form.validator(duplicateValidator, lengthValidator);
+  var validateNumber = form.validator(regexpValidator(/^[0-9]*$/));
 
   function textInputHandler(event) {
     validateLengthAndDuplicates.evaluate(event.target.value, visualize(event.target));
