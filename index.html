@@ -8,25 +8,17 @@
       list-style: none;
       padding: 10px;
     }
+    .demo {
+      display: block;
+      padding: 5px;
+      background-color: #EEE;
+      white-space: pre;
+      font-family: monospace;
+      font-size: 11px;
+    }
   </style>
 </head>
 <body onload="emulateTyping()">
-<form>
-  <dl>
-    <li>
-      <input id="textInput" type="text" onkeyup="textInputHandler(event)" />
-      <label for="textInput"></label>
-    </li>
-    <li>
-      <input id="numberInput" type="text" onkeyup="numberInputHandler(event)"/>
-      <label for="numberInput"></label>
-    </li>
-    <li>
-      <input id="formSubmit" type="submit"/>
-      <label for="formSubmit"></label>
-    </li>
-  </dl>
-</form>
 <script>
   function visualize(element) {
     return function(response) {
@@ -39,7 +31,9 @@
       element.nextElementSibling.textContent = response.errorMessageList.join(", ");
     }
   }
-
+</script>
+<h2>Sample validators</h2>
+<script class="demo">
   function duplicateValidator(text) {
     return function(value, done) {
       setTimeout(function() {
@@ -61,29 +55,46 @@
       done(value.match(regexp) !== null, "Not matching pattern " + regexp);
     }
   }
-
-  function button() {
+</script>
+<h2>Sample form</h2>
+<form>
+  <dl>
+    <li>
+      <input id="textInput" type="text" onkeyup="textInputHandler(event)" />
+      <label for="textInput"></label>
+    </li>
+    <li>
+      <input id="numberInput" type="text" onkeyup="numberInputHandler(event)"/>
+      <label for="numberInput"></label>
+    </li>
+    <li>
+      <input id="formSubmit" type="submit"/>
+      <label for="formSubmit"></label>
+    </li>
+  </dl>
+</form>
+<script class="demo">
+  var form = Form(function() {
     var element = document.getElementById('formSubmit');
     var handler = visualize(element);
     return function(state) {
       element.disabled = (state.state === State.OK) ? '' : 'disabled';
       handler(state);
     }
-  }
+  }());
 
-  var form = Form(button());
-
-  var validateLengthAndDuplicates = form.validator(duplicateValidator("Test"), lengthValidator(6));
-  var validateNumber = form.validator(regexpValidator(/^[0-9]*$/), lengthValidator(2));
+  var textValidation = form.validator(duplicateValidator("Test"), lengthValidator(6));
+  var numberValidation = form.validator(regexpValidator(/^[0-9]*$/), lengthValidator(2));
 
   function textInputHandler(event) {
-    validateLengthAndDuplicates.evaluate(event.target.value, visualize(event.target));
+    textValidation.evaluate(event.target.value, visualize(event.target));
   }
 
   function numberInputHandler(event) {
-    validateNumber.evaluate(event.target.value, visualize(event.target));
+    numberValidation.evaluate(event.target.value, visualize(event.target));
   }
-
+</script>
+<script>
   function emulateTyping() {
     var node = document.getElementById("textInput");
     var testInput = "Test Input";
