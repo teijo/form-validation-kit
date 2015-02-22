@@ -2,11 +2,25 @@
 <head>
   <script type="text/javascript" src="bower_components/bacon/dist/Bacon.js"></script>
   <script type="text/javascript" src="http://localhost:35729/livereload.js"></script>
+  <style>
+    li {
+      list-style: none;
+      padding: 10px;
+    }
+  </style>
 </head>
 <body onload="emulateTyping()">
 <form>
-  <input id="textInput" type="text" name="textInput" onkeyup="input(event)" />
-  <label id="textInputResult" for="textInput"></label>
+  <dl>
+    <li>
+      <input id="textInput" type="text" name="textInput" onkeyup="textInputHandler(event)" />
+      <label for="textInput"></label>
+    </li>
+    <li>
+      <input id="numberInput" type="text" name="textInput" onkeyup="numberInputHandler(event)"/>
+      <label for="numberInput"></label>
+    </li>
+  </dl>
 </form>
 <script>
   STATE_OK = 1;
@@ -20,9 +34,6 @@
     var throttledInput = input.throttle(100);
 
     var validationStream = throttledInput.flatMapLatest(function(value) {
-      if (typeof(value) !== 'string') {
-        throw new Error('Given input not string: ' + value)
-      }
       return Bacon.combineAsArray(validatorList.map(function(validator) {
         return Bacon.fromCallback(function(done) {
           validator(value, function(isValid, errorMessage) {
@@ -78,27 +89,37 @@
     }, 100);
   }
 
-  var inputElement = function() { return document.getElementById("textInput") };
-  var inputResultElement = function() { return document.getElementById("textInputResult") };
+  function regexpValidator(regexp) {
+    return function(value, done) {
+      done(value.match(regexp) !== null, "Not matching pattern " + regexp);
+    }
+  }
 
-  function stateChange(response) {
-    var colors = {};
-    colors[STATE_QUEUED] = 'lightgray';
-    colors[STATE_PENDING] = 'aqua';
-    colors[STATE_OK] = 'lime';
-    colors[STATE_INVALID] = 'pink';
-    inputElement().style.backgroundColor = colors[response.state];
-    inputResultElement().innerText = response.errorMessageList.join(", ");
+  function visualize(element) {
+    return function(response) {
+      var colors = {};
+      colors[STATE_QUEUED] = 'lightgray';
+      colors[STATE_PENDING] = 'aqua';
+      colors[STATE_OK] = 'lime';
+      colors[STATE_INVALID] = 'pink';
+      element.style.backgroundColor = colors[response.state];
+      element.nextElementSibling.textContent = response.errorMessageList.join(", ");
+    }
   }
 
   var validateLengthAndDuplicates = Validation(duplicateValidator, lengthValidator);
+  var validateNumber = Validation(regexpValidator(/^[0-9]*$/));
 
-  function input(event) {
-    validateLengthAndDuplicates.evaluate(event.target.value, stateChange);
+  function textInputHandler(event) {
+    validateLengthAndDuplicates.evaluate(event.target.value, visualize(event.target));
+  }
+
+  function numberInputHandler(event) {
+    validateNumber.evaluate(event.target.value, visualize(event.target));
   }
 
   function emulateTyping() {
-    var node = inputElement();
+    var node = document.getElementById("textInput");
     var testInput = "Test Input";
     Bacon.sequentially(200, testInput.split("")).onValue(function(char) {
       var event = new Event("keyup");
