@@ -29,7 +29,7 @@
       colors[State.VALID] = 'lime';
       colors[State.INVALID] = 'pink';
       element.style.backgroundColor = colors[response.state];
-      element.nextElementSibling.textContent = response.errorMessageList.join(", ");
+      element.nextElementSibling.textContent = '[' + response.state + '] ' + response.errorMessageList.join(", ");
     }
   }
 </script>
@@ -59,7 +59,10 @@
 
   function failingValidator(value, done, error) {
     setTimeout(function() {
-      error("Validation timed out");
+      if (value === 'fail')
+        error("Validation timed out");
+      else
+        done(true);
     }, 300);
   }
 </script>
@@ -77,7 +80,7 @@
       <label for="numberInput"></label>
     </li>
     <li>
-      <p>Timeout</p>
+      <p>Timeout (write fail)</p>
       <input id="failingInput" type="text" onkeyup="failingHandler(event)"/>
       <label for="failingInput"></label>
     </li>
@@ -88,17 +91,14 @@
   </dl>
 </form>
 <script class="demo">
-  var form = Form(function() {
-    var element = document.getElementById('formSubmit');
-    var handler = visualize(element);
-    return function(state) {
-      element.disabled = (state.state === State.VALID) ? '' : 'disabled';
-      handler(state);
-    }
-  }());
+  var form = Form(function(state) {
+    var submitButton = document.getElementById('formSubmit');
+    submitButton.disabled = (state.state === State.VALID) ? '' : 'disabled';
+    visualize(submitButton)(state);
+  });
 
   var textValidation = form.validator(duplicateValidator("Test"), lengthValidator(6));
-  var numberValidation = form.validator(regexpValidator(/^[0-9]*$/), lengthValidator(2));
+  var numberValidation = form.validator(regexpValidator(/^[0-9]*$/));
   var timeoutValidation = form.validator(failingValidator);
 
   function textHandler(event) {
@@ -110,7 +110,7 @@
   }
 
   function failingHandler(event) {
-    timeoutValidation.evaluate(event.target.value, visualize(event.target));
+    timeoutValidation.evaluate(event.target.value, visualize(event.target), {throttle: 3000});
   }
 </script>
 <script>

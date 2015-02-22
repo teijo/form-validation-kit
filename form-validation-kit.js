@@ -1,20 +1,19 @@
 var State = {
   // Error occuring during validation, e.g. timeout
-  ERROR: -3,
+  ERROR: 'error',
   // Input received but validator invocation is waiting for throttle cooldown
-  WAITING: -2,
+  WAITING: 'waiting',
   // Validator invoked with latest value and waiting for response
-  VALIDATING: -1,
+  VALIDATING: 'validating',
   // Validator has evaluated input as invalid
-  INVALID: 0,
+  INVALID: 'invalid',
   // Validator has evaluated input as valid
-  VALID: 1
+  VALID: 'valid'
 };
 
-function Validation(/*...validators*/) {
-  var validatorList = Array.prototype.slice.call(arguments);
+function Validation(validatorList, options) {
   var input = new Bacon.Bus();
-  var throttledInput = input.throttle(100);
+  var throttledInput = input.throttle(options.throttle);
 
   var validationStream = throttledInput.flatMapLatest(function(value) {
     return Bacon.combineAsArray(validatorList.map(function(validator) {
@@ -74,6 +73,9 @@ function Validation(/*...validators*/) {
   return {
     state: state.map('.state'),
     evaluate: function(value, cb) {
+      if (typeof(cb) !== 'function') {
+        throw new Error('Second argument needs to be a function(state) {}')
+      }
       state.subscribe(function(event) {
         var response = event.value();
         cb(response);
@@ -102,8 +104,19 @@ function Form(stateCallback) {
   addValidatorStateStream(Bacon.constant(State.VALID));
 
   return {
-    validator: function() {
-      var validator = Validation.apply(this, arguments);
+    validator: function(/*validator, validator, ..., options*/) {
+      var validatorList = Array.prototype.slice.call(arguments);
+      if (validatorList.length === 0) {
+        throw new Error('At least one validator must be given');
+      }
+
+      var options = {throttle: 100};
+      var last = validatorList[validatorList.length - 1];
+      if (typeof(last) === 'object') {
+        options = last;
+        validatorList.pop();
+      }
+      var validator = Validation(validatorList, options);
       addValidatorStateStream(validator.state);
       return {evaluate: validator.evaluate};
     }
