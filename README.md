@@ -1,6 +1,8 @@
 form-validation-kit
 ===================
 
+[See demos on project's Github Pages](https://teijo.github.io/form-validation-kit/)
+
 Project for reactive JavaScript form validation library.
 
 Under development as of 22.2.2015.
