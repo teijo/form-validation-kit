@@ -23,9 +23,9 @@
   function visualize(element) {
     return function(response) {
       var colors = {};
-      colors[State.QUEUED] = 'lightgray';
-      colors[State.PENDING] = 'aqua';
-      colors[State.OK] = 'lime';
+      colors[State.WAITING] = 'lightgray';
+      colors[State.VALIDATING] = 'aqua';
+      colors[State.VALID] = 'lime';
       colors[State.INVALID] = 'pink';
       element.style.backgroundColor = colors[response.state];
       element.nextElementSibling.textContent = response.errorMessageList.join(", ");
@@ -78,7 +78,7 @@
     var element = document.getElementById('formSubmit');
     var handler = visualize(element);
     return function(state) {
-      element.disabled = (state.state === State.OK) ? '' : 'disabled';
+      element.disabled = (state.state === State.VALID) ? '' : 'disabled';
       handler(state);
     }
   }());

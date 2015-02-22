@@ -1,8 +1,12 @@
 var State = {
-  OK: 1,
+  // Input received but validator invocation is waiting for throttle cooldown
+  WAITING: -2,
+  // Validator invoked with latest value and waiting for response
+  VALIDATING: -1,
+  // Validator has evaluated input as invalid
   INVALID: 0,
-  PENDING: -1,
-  QUEUED: -2
+  // Validator has evaluated input as valid
+  VALID: 1
 };
 
 function Validation(/*...validators*/) {
@@ -15,7 +19,7 @@ function Validation(/*...validators*/) {
       return Bacon.fromCallback(function(done) {
         validator(value, function(isValid, errorMessage) {
           done({
-            state: isValid ? State.OK : State.INVALID,
+            state: isValid ? State.VALID : State.INVALID,
             errorMessage: errorMessage || ""
           });
         });
@@ -24,11 +28,11 @@ function Validation(/*...validators*/) {
   });
 
   var requestQueued = input.map({
-    state: State.QUEUED,
+    state: State.WAITING,
     errorMessageList: []
   });
   var requestSent = throttledInput.map({
-    state: State.PENDING,
+    state: State.VALIDATING,
     errorMessageList: []
   });
   var response = validationStream.map(function(responseList) {
@@ -38,7 +42,7 @@ function Validation(/*...validators*/) {
         agg.errorMessageList = agg.errorMessageList.concat(response.errorMessage);
       }
       return agg;
-    }, {state: State.OK, errorMessageList: []});
+    }, {state: State.VALID, errorMessageList: []});
   });
 
   var state = Bacon.mergeAll(
@@ -48,7 +52,7 @@ function Validation(/*...validators*/) {
   ).skipDuplicates();
 
   function stateResolved(response) {
-    return (response.state === State.INVALID || response.state === State.OK);
+    return (response.state === State.INVALID || response.state === State.VALID);
   }
 
   return {
@@ -70,7 +74,7 @@ function Form(stateCallback) {
   function addValidatorStateStream(stateStream) {
     stateStreams.push(stateStream);
     Bacon.combineAsArray(stateStreams).map(function(validators) {
-      var PRECEDENCE = [State.QUEUED, State.PENDING, State.INVALID, State.OK];
+      var PRECEDENCE = [State.WAITING, State.VALIDATING, State.INVALID, State.VALID];
       return validators.reduce(function(agg, state) {
         return (PRECEDENCE.indexOf(state) < PRECEDENCE.indexOf(agg)) ? state : agg;
       })
@@ -79,7 +83,7 @@ function Form(stateCallback) {
     }).skipDuplicates().onValue(stateCallback);
   }
 
-  addValidatorStateStream(Bacon.constant(State.OK));
+  addValidatorStateStream(Bacon.constant(State.VALID));
 
   return {
     validator: function() {
