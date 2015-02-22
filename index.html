@@ -41,7 +41,7 @@
         throw new Error('Given input not string: ' + value)
       }
       return Bacon.combineAsArray(validatorList.map(function(validator) {
-        return Bacon.fromCallback(validator(value))
+        return Bacon.fromCallback(function(done) { validator(value, done); });
       }));
     });
 
@@ -63,20 +63,16 @@
     }
   }
 
-  function duplicateValidator(value) {
-    return function(done) {
-      setTimeout(function() {
-        done(value !== "Test");
-      }, 50);
-    }
+  function duplicateValidator(value, done) {
+    setTimeout(function() {
+      done(value !== "Test");
+    }, 50);
   }
 
-  function lengthValidator(value) {
-    return function(done) {
-      setTimeout(function() {
-        done(value.length > 2);
-      }, 100);
-    }
+  function lengthValidator(value, done) {
+    setTimeout(function() {
+      done(value.length > 2);
+    }, 100);
   }
 
   function stateChange(state) {
