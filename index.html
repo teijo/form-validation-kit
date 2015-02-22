@@ -117,14 +117,9 @@
     function addValidatorStateStream(stateStream) {
       stateStreams.push(stateStream);
       Bacon.combineAsArray(stateStreams).map(function(validators) {
+        var STATE_PRECEDENCE = [STATE_QUEUED, STATE_PENDING, STATE_INVALID, STATE_OK];
         return validators.reduce(function(agg, state) {
-          switch (state) {
-            case STATE_QUEUED: return STATE_QUEUED;
-            case STATE_PENDING: return STATE_PENDING;
-            case STATE_INVALID: return STATE_INVALID;
-            case STATE_OK: return STATE_OK;
-            default: throw new Error("Invalid state");
-          }
+          return (STATE_PRECEDENCE.indexOf(state) < STATE_PRECEDENCE.indexOf(agg)) ? state : agg;
         })
       }).map(function(combinedState) {
         return {state: combinedState, errorMessageList: []};
@@ -142,11 +137,16 @@
     }
   }
 
-  var form = Form(function(state) {
-    var button = document.getElementById('formSubmit');
-    button.disabled = (state.state === STATE_OK) ? '' : 'disabled';
-    visualize(button);
-  });
+  function button() {
+    var element = document.getElementById('formSubmit');
+    var handler = visualize(element);
+    return function(state) {
+      element.disabled = (state.state === STATE_OK) ? '' : 'disabled';
+      handler(state);
+    }
+  }
+
+  var form = Form(button());
 
   var validateLengthAndDuplicates = form.validator(duplicateValidator, lengthValidator);
   var validateNumber = form.validator(regexpValidator(/^[0-9]*$/));
