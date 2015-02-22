@@ -27,10 +27,12 @@
   </dl>
 </form>
 <script>
-  STATE_OK = 1;
-  STATE_INVALID = 0;
-  STATE_PENDING = -1;
-  STATE_QUEUED = -2;
+  var State = {
+    OK: 1,
+    INVALID: 0,
+    PENDING: -1,
+    QUEUED: -2
+  };
 
   function Validation(/*...validators*/) {
     var validatorList = Array.prototype.slice.call(arguments);
@@ -41,22 +43,22 @@
       return Bacon.combineAsArray(validatorList.map(function(validator) {
         return Bacon.fromCallback(function(done) {
           validator(value, function(isValid, errorMessage) {
-            done({state: isValid ? STATE_OK : STATE_INVALID, errorMessage: errorMessage || ""});
+            done({state: isValid ? State.OK : State.INVALID, errorMessage: errorMessage || ""});
           });
         });
       }));
     });
 
-    var requestQueued = input.map({state: STATE_QUEUED, errorMessageList: []});
-    var requestSent = throttledInput.map({state: STATE_PENDING, errorMessageList: []});
+    var requestQueued = input.map({state: State.QUEUED, errorMessageList: []});
+    var requestSent = throttledInput.map({state: State.PENDING, errorMessageList: []});
     var response = validationStream.map(function(responseList) {
       return responseList.reduce(function (agg, response) {
-        if (response.state === STATE_INVALID) {
-          agg.state = STATE_INVALID;
+        if (response.state === State.INVALID) {
+          agg.state = State.INVALID;
           agg.errorMessageList = agg.errorMessageList.concat(response.errorMessage);
         }
         return agg;
-      }, {state: STATE_OK, errorMessageList: []});
+      }, {state: State.OK, errorMessageList: []});
     });
 
     var state = Bacon.mergeAll(
@@ -66,7 +68,7 @@
     ).skipDuplicates();
 
     function stateResolved(response) {
-      return (response.state === STATE_INVALID || response.state === STATE_OK);
+      return (response.state === State.INVALID || response.state === State.OK);
     }
 
     return {
@@ -82,10 +84,12 @@
     }
   }
 
-  function duplicateValidator(value, done) {
-    setTimeout(function() {
-      done(value !== "Test", "Reserved text");
-    }, 50);
+  function duplicateValidator(text) {
+    return function(value, done) {
+      setTimeout(function() {
+        done(value !== text, 'Reserved word "' + text + '"');
+      }, 50);
+    }
   }
 
   function lengthValidator(minLength) {
@@ -105,10 +109,10 @@
   function visualize(element) {
     return function(response) {
       var colors = {};
-      colors[STATE_QUEUED] = 'lightgray';
-      colors[STATE_PENDING] = 'aqua';
-      colors[STATE_OK] = 'lime';
-      colors[STATE_INVALID] = 'pink';
+      colors[State.QUEUED] = 'lightgray';
+      colors[State.PENDING] = 'aqua';
+      colors[State.OK] = 'lime';
+      colors[State.INVALID] = 'pink';
       element.style.backgroundColor = colors[response.state];
       element.nextElementSibling.textContent = response.errorMessageList.join(", ");
     }
@@ -119,16 +123,16 @@
     function addValidatorStateStream(stateStream) {
       stateStreams.push(stateStream);
       Bacon.combineAsArray(stateStreams).map(function(validators) {
-        var STATE_PRECEDENCE = [STATE_QUEUED, STATE_PENDING, STATE_INVALID, STATE_OK];
+        var PRECEDENCE = [State.QUEUED, State.PENDING, State.INVALID, State.OK];
         return validators.reduce(function(agg, state) {
-          return (STATE_PRECEDENCE.indexOf(state) < STATE_PRECEDENCE.indexOf(agg)) ? state : agg;
+          return (PRECEDENCE.indexOf(state) < PRECEDENCE.indexOf(agg)) ? state : agg;
         })
       }).map(function(combinedState) {
         return {state: combinedState, errorMessageList: []};
       }).skipDuplicates().onValue(stateCallback);
     }
 
-    addValidatorStateStream(Bacon.constant(STATE_OK));
+    addValidatorStateStream(Bacon.constant(State.OK));
 
     return {
       validator: function() {
@@ -143,14 +147,14 @@
     var element = document.getElementById('formSubmit');
     var handler = visualize(element);
     return function(state) {
-      element.disabled = (state.state === STATE_OK) ? '' : 'disabled';
+      element.disabled = (state.state === State.OK) ? '' : 'disabled';
       handler(state);
     }
   }
 
   var form = Form(button());
 
-  var validateLengthAndDuplicates = form.validator(duplicateValidator, lengthValidator(6));
+  var validateLengthAndDuplicates = form.validator(duplicateValidator("Test"), lengthValidator(6));
   var validateNumber = form.validator(regexpValidator(/^[0-9]*$/), lengthValidator(2));
 
   function textInputHandler(event) {
