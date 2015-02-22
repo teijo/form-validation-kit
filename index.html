@@ -14,7 +14,8 @@
   STATE_PENDING = -1;
   STATE_QUEUED = -2;
 
-  function newValidation(stateChangeCb, validatorList) {
+  function Validation(/*...validators*/) {
+    var validatorList = Array.prototype.slice.call(arguments);
     var input = new Bacon.Bus();
     var throttledInput = input.throttle(100);
 
@@ -43,14 +44,23 @@
       }, {state: STATE_OK, errorMessageList: []});
     });
 
-    Bacon.mergeAll(
+    var state = Bacon.mergeAll(
         requestQueued,
         requestSent,
         response
-    ).skipDuplicates().onValue(stateChangeCb);
+    ).skipDuplicates();
+
+    function stateResolved(response) {
+      return (response.state === STATE_INVALID || response.state === STATE_OK);
+    }
 
     return {
-      evaluate: function(value) {
+      evaluate: function(value, cb) {
+        state.subscribe(function(event) {
+          var response = event.value();
+          cb(response);
+          return stateResolved(response) ? Bacon.noMore : Bacon.more;
+        });
         input.push(value);
       }
     }
@@ -71,32 +81,20 @@
   var inputElement = function() { return document.getElementById("textInput") };
   var inputResultElement = function() { return document.getElementById("textInputResult") };
 
-  function stateChange() {
-    function stateColor(state) {
-      switch (state) {
-        case STATE_QUEUED:
-          return 'lightgray';
-        case STATE_PENDING:
-          return 'aqua';
-        case STATE_OK:
-          return 'lime';
-        case STATE_INVALID:
-          return 'pink';
-        default:
-          throw new Error('Invalid state: ' + state)
-      }
-    }
-
-    return function(response) {
-      inputElement().style.backgroundColor = stateColor(response.state);
-      inputResultElement().innerText = response.errorMessageList.join(", ");
-    };
+  function stateChange(response) {
+    var colors = {};
+    colors[STATE_QUEUED] = 'lightgray';
+    colors[STATE_PENDING] = 'aqua';
+    colors[STATE_OK] = 'lime';
+    colors[STATE_INVALID] = 'pink';
+    inputElement().style.backgroundColor = colors[response.state];
+    inputResultElement().innerText = response.errorMessageList.join(", ");
   }
 
-  var validateLengthAndDuplicates = newValidation(stateChange(), [duplicateValidator, lengthValidator]);
+  var validateLengthAndDuplicates = Validation(duplicateValidator, lengthValidator);
 
   function input(event) {
-    validateLengthAndDuplicates.evaluate(event.target.value);
+    validateLengthAndDuplicates.evaluate(event.target.value, stateChange);
   }
 
   function emulateTyping() {
