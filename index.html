@@ -88,10 +88,12 @@
     }, 50);
   }
 
-  function lengthValidator(value, done) {
-    setTimeout(function() {
-      done(value.length > 5, "Input too short");
-    }, 100);
+  function lengthValidator(minLength) {
+    return function(value, done) {
+      setTimeout(function() {
+        done(value.length >= minLength, "Minimum length is " + minLength);
+      }, 100);
+    }
   }
 
   function regexpValidator(regexp) {
@@ -148,8 +150,8 @@
 
   var form = Form(button());
 
-  var validateLengthAndDuplicates = form.validator(duplicateValidator, lengthValidator);
-  var validateNumber = form.validator(regexpValidator(/^[0-9]*$/));
+  var validateLengthAndDuplicates = form.validator(duplicateValidator, lengthValidator(6));
+  var validateNumber = form.validator(regexpValidator(/^[0-9]*$/), lengthValidator(2));
 
   function textInputHandler(event) {
     validateLengthAndDuplicates.evaluate(event.target.value, visualize(event.target));
