@@ -33,7 +33,45 @@
     }
   }
 </script>
+<h1>form-validation-kit</h1>
+<p>form-validation-kit is a small library for handling the validation state of
+  HTML forms.</p>
+
+<h2>Demo form</h2>
+<p>Filled on reload. Modify the inputs and play around.</p>
+<form>
+  <dl>
+    <li>
+      <p>textHandler()</p>
+      <input id="textInput" type="text" onkeyup="textHandler(event)" />
+      <label for="textInput"></label>
+    </li>
+    <li>
+      <p>numberHandler()</p>
+      <input id="numberInput" type="text" onkeyup="numberHandler(event)"/>
+      <label for="numberInput"></label>
+    </li>
+    <li>
+      <p>failingHandler()</p>
+      <input id="failingInput" type="text" onkeyup="failingHandler(event)"/>
+      <label for="failingInput"></label>
+    </li>
+    <li>
+      <input id="formSubmit" type="submit"/>
+      <label for="formSubmit"></label>
+    </li>
+  </dl>
+</form>
+
 <h2>Sample validators</h2>
+<p>Validator is a function determining determining the validity of the
+  received input. Completed validation is indicated with <code>done</code> or
+  <code>error</code> callbacks. If input is deemed INVALID, given message is
+  returned to the validation requester. If unexpected problem occurs, such as
+  a timeout for AJAX call, ERROR state can be triggered with desired
+  description. Low granularity validators can be can be combined together
+  (see below).</p>
+
 <script class="demo">
   function duplicateValidator(text) {
     return function(value, done) {
@@ -66,30 +104,22 @@
     }, 50);
   }
 </script>
-<h2>Sample form</h2>
-<form>
-  <dl>
-    <li>
-      <p>textHandler()</p>
-      <input id="textInput" type="text" onkeyup="textHandler(event)" />
-      <label for="textInput"></label>
-    </li>
-    <li>
-      <p>numberHandler()</p>
-      <input id="numberInput" type="text" onkeyup="numberHandler(event)"/>
-      <label for="numberInput"></label>
-    </li>
-    <li>
-      <p>failingHandler()</p>
-      <input id="failingInput" type="text" onkeyup="failingHandler(event)"/>
-      <label for="failingInput"></label>
-    </li>
-    <li>
-      <input id="formSubmit" type="submit"/>
-      <label for="formSubmit"></label>
-    </li>
-  </dl>
-</form>
+
+<h2>Demo form setup</h2>
+<p><code>form</code> indicates a group of input <code>validator</code>s.
+  <code>form</code> receives the combined state of the inputs, e.g. if one
+  <code>validator</code> is INVALID and all others are VALID, combined result
+  for the form is INVALID. If state of one <code>validator</code> is
+  VALIDATING (result pending from asynchronous validation), state of
+  <code>form</code> is VALIDATING. Precedence from first to last is listed below:</p>
+<ol>
+  <li>ERROR: Validator could not correctly determine the validity of the input</li>
+  <li>WAITING: Input received but validator invocation is waiting for throttle cooldown</li>
+  <li>VALIDATING: Validator invoked with latest value and waiting for response</li>
+  <li>INVALID: Validator has evaluated input as invalid</li>
+  <li>VALID: Validator has evaluated input as valid</li>
+</ol>
+
 <script class="demo">
   var form = Form(function(state) {
     var submitButton = document.getElementById('formSubmit');
@@ -97,6 +127,7 @@
     visualize(submitButton)(state);
   });
 
+  // Validators build from combining earlier definitions
   var textValidation = form.validator(duplicateValidator("Test"), lengthValidator(6));
   var numberValidation = form.validator(regexpValidator(/^[0-9]*$/));
   var timeoutValidation = form.validator(failingValidator, {throttle: 1000});
