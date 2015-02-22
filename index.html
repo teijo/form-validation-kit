@@ -12,16 +12,18 @@
   STATE_OK = 1;
   STATE_INVALID = 0;
   STATE_PENDING = -1;
+  STATE_QUEUED = -2;
 
   function stateColor(state) {
-    console.log('state: ' + state)
     switch (state) {
+      case STATE_QUEUED:
+        return 'lightgray';
+      case STATE_PENDING:
+        return 'aqua';
       case STATE_OK:
             return 'lime';
       case STATE_INVALID:
             return 'pink';
-      case STATE_PENDING:
-            return 'aqua';
       default:
             throw new Error('Invalid state: ' + state)
     }
@@ -31,10 +33,8 @@
   var inputResultElement = function() { return document.getElementById("textInputResult") };
 
   function setPending(state) {
-    return function() {
-      inputElement().style.backgroundColor = stateColor(state);
-      setResult(state)
-    }
+    inputElement().style.backgroundColor = stateColor(state);
+    setResult(state)
   }
 
   function setResult(result) {
@@ -42,22 +42,28 @@
   }
 
   var remote = new Bacon.Bus();
+  var outputStream = remote.throttle(100);
 
-  var validationStream = remote.flatMapLatest(function(value) {
-    return Bacon.fromCallback(function(callback) {
-      setTimeout(function() {
-        if (typeof(value) !== 'string') {
-          throw new Error('Given input not string: ' + value)
-        }
+  var validationStream = outputStream.flatMapLatest(function(value) {
+    if (typeof(value) !== 'string') {
+      throw new Error('Given input not string: ' + value)
+    }
+    var checkLength = function (callback) {
+      setTimeout(function () {
         callback({value: value, isValid: value.length > 5});
       }, 100);
-    })
+    };
+    return Bacon.fromCallback(checkLength)
   });
 
-  var requestStream = remote.onValue(setPending(STATE_PENDING));
-  var responseStream = validationStream.map('.isValid').onValue(function(isValid) {
-    setPending(isValid ? STATE_OK : STATE_INVALID)();
+  var queueStream = remote.map(STATE_QUEUED);
+  var requestStream = outputStream.map(STATE_PENDING);
+  var responseStream = validationStream.map(function(response) {
+    return response.isValid ? STATE_OK : STATE_INVALID;
   });
+
+  var stateStream = Bacon.mergeAll(queueStream, requestStream, responseStream);
+  stateStream.skipDuplicates().onValue(setPending);
 
   validationStream.log('validation');
 
