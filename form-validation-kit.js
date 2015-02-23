@@ -7,7 +7,7 @@ Validation = (function() {
     // Error occuring during validation, e.g. timeout
     ERROR: 'error',
     // Input received but validator invocation is waiting for throttle cooldown
-    WAITING: 'waiting',
+    QUEUED: 'queued',
     // Validator invoked with latest value and waiting for response
     VALIDATING: 'validating',
     // Validator has evaluated input as invalid
@@ -45,7 +45,7 @@ Validation = (function() {
     });
 
     var requestQueued = input.map({
-      state: State.WAITING,
+      state: State.QUEUED,
       errorMessageList: []
     });
     var requestSent = throttledInput.map({
@@ -97,7 +97,7 @@ Validation = (function() {
     function addValidatorStateStream(stateStream) {
       stateStreams.push(stateStream);
       Bacon.combineAsArray(stateStreams).map(function(validators) {
-        var PRECEDENCE = [State.ERROR, State.WAITING, State.VALIDATING, State.INVALID, State.VALID];
+        var PRECEDENCE = [State.ERROR, State.QUEUED, State.VALIDATING, State.INVALID, State.VALID];
         return validators.reduce(function(agg, state) {
           return (PRECEDENCE.indexOf(state) < PRECEDENCE.indexOf(agg)) ? state : agg;
         })
@@ -127,7 +127,7 @@ Validation = (function() {
   }
   return {
     Error: State.ERROR,
-    Waiting: State.WAITING,
+    Waiting: State.QUEUED,
     Validating: State.VALIDATING,
     Invalid: State.INVALID,
     Valid: State.VALID,
