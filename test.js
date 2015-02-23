@@ -2,18 +2,25 @@ var V = require('./form-validation-kit');
 var assert = require("assert");
 
 function expectOk(value, done) {
-  done(value === "ok");
+  setTimeout(function() {
+    done(value === "ok");
+  }, 0)
 }
 
 describe('Input', function() {
   it('triggers Valid state', function(done) {
+    var createStates = [V.Waiting, V.Validating, V.Valid];
     var form = V.Create(function(state) {
+      assert.equal(state.state, createStates.shift(1));
       if (state.state === V.Valid) {
         done();
       }
     });
 
-    form.validator(expectOk).evaluate("ok", function(state) { });
+    var evalStates = [V.Waiting, V.Validating, V.Valid];
+    form.validator(expectOk, {throttle: 0}).evaluate("ok", function(state) {
+      assert.equal(state.state, evalStates.shift(1));
+    });
   })
 });
 
