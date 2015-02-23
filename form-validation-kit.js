@@ -1,3 +1,7 @@
+try {
+  Bacon = require('baconjs');
+} catch(e) {}
+
 Validation = (function() {
   var State = {
     // Error occuring during validation, e.g. timeout
@@ -132,3 +136,7 @@ Validation = (function() {
     Create: Create
   }
 })();
+
+try {
+  module.exports = Validation;
+} catch(e) {}

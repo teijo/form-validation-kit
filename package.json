@@ -3,12 +3,14 @@
   "version": "0.0.0",
   "description": "",
   "main": "index.js",
-  "dependencies": {
-    "livereloadx": "~0.3.7"
+  "devDependencies": {
+    "livereloadx": "~0.3.7",
+    "mocha": "~2.1.0",
+    "watch": "~0.14.0"
   },
-  "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "watch mocha . & livereloadx .",
+    "test": "mocha"
   },
   "author": "Teijo Laine",
   "license": "MIT"

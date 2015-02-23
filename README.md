@@ -14,8 +14,10 @@ Development
 ```
 bower install
 npm install
-livereloadx .
 ```
 
-Open `index.html` in your browser. Saving `index.html` will automatically
-reload it in the browser.
+To live reload code on browser and run tests on change run `npm start`.
+Single test run `npm test`.
+
+With live reload, open `index.html` in your browser. Saving `index.html` will
+automatically reload it in the browser.
