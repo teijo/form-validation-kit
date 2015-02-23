@@ -47,17 +47,17 @@
   <dl>
     <li>
       <p>textHandler()</p>
-      <input id="textInput" type="text" onkeyup="textHandler(event)" />
+      <input id="textInput" type="text" onkeydown="textHandler(event)" />
       <label for="textInput"></label>
     </li>
     <li>
       <p>numberHandler()</p>
-      <input id="numberInput" type="text" onkeyup="numberHandler(event)"/>
+      <input id="numberInput" type="text" onkeydown="numberHandler(event)"/>
       <label for="numberInput"></label>
     </li>
     <li>
       <p>failingHandler()</p>
-      <input id="failingInput" type="text" onkeyup="failingHandler(event)"/>
+      <input id="failingInput" type="text" onkeydown="failingHandler(event)"/>
       <label for="failingInput"></label>
     </li>
     <li>
@@ -152,7 +152,7 @@
   function emulateTyping(elementId, testInput, interval) {
     var node = document.getElementById(elementId);
     Bacon.sequentially(interval, testInput.split("")).onValue(function(char) {
-      var event = new Event("keyup");
+      var event = new Event("keydown");
       event.keyCode = char.charCodeAt(0);
       node.value = node.value + char;
       node.dispatchEvent(event);
