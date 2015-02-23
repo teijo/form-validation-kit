@@ -106,8 +106,6 @@ Validation = (function() {
       }).skipDuplicates().onValue(stateCallback);
     }
 
-    addValidatorStateStream(Bacon.constant(State.VALID));
-
     return {
       validator: function(/*validator, validator, ..., options*/) {
         var validatorList = Array.prototype.slice.call(arguments);
