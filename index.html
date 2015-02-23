@@ -26,11 +26,11 @@
   function visualize(element) {
     return function(response) {
       var colors = {};
-      colors[State.ERROR] = 'red';
-      colors[State.WAITING] = 'lightgray';
-      colors[State.VALIDATING] = 'aqua';
-      colors[State.VALID] = 'lime';
-      colors[State.INVALID] = 'pink';
+      colors[Validation.Error] = 'red';
+      colors[Validation.Waiting] = 'lightgray';
+      colors[Validation.Validating] = 'aqua';
+      colors[Validation.Valid] = 'lime';
+      colors[Validation.Invalid] = 'pink';
       element.style.backgroundColor = colors[response.state];
       element.nextElementSibling.textContent = '[' + response.state + '] ' + response.errorMessageList.join(", ");
     }
@@ -125,9 +125,9 @@
 </ol>
 
 <script class="demo">
-  var form = Form(function(state) {
+  var form = Validation.Create(function(state) {
     var submitButton = document.getElementById('formSubmit');
-    submitButton.disabled = (state.state === State.VALID) ? '' : 'disabled';
+    submitButton.disabled = (state.state === Validation.Valid) ? '' : 'disabled';
     visualize(submitButton)(state);
   });
 
