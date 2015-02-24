@@ -92,13 +92,15 @@ Validation = (function() {
   }
 
   function Create(stateCallback) {
-    var stateStreams = [];
+    var validatorCount = 0;
+    var stateStreams = {};
 
-    function addValidatorStateStream(stateStream) {
-      stateStreams.push(stateStream);
-      Bacon.combineAsArray(stateStreams).map(function(validators) {
+    function updateStream() {
+      Bacon.combineTemplate(stateStreams).map(function(validators) {
         var PRECEDENCE = [State.ERROR, State.QUEUED, State.VALIDATING, State.INVALID, State.VALID];
-        return validators.reduce(function(agg, state) {
+        return Object.keys(validators).map(function(k) {
+          return validators[k];
+        }).reduce(function(agg, state) {
           return (PRECEDENCE.indexOf(state) < PRECEDENCE.indexOf(agg)) ? state : agg;
         })
       }).map(function(combinedState) {
@@ -106,8 +108,22 @@ Validation = (function() {
       }).skipDuplicates().onValue(stateCallback);
     }
 
+    function register(stateStream) {
+      stateStreams[validatorCount] = stateStream;
+      validatorCount++;
+      updateStream();
+      return validatorCount;
+    }
+
+    function unregister(id) {
+      return function() {
+        delete stateStreams[id];
+        updateStream();
+      }
+    }
+
     return {
-      validator: function(/*validator, validator, ..., options*/) {
+      register: function(/*validator, validator, ..., options*/) {
         var validatorList = Array.prototype.slice.call(arguments);
         if (validatorList.length === 0) {
           throw new Error('At least one validator must be given');
@@ -120,8 +136,23 @@ Validation = (function() {
           validatorList.pop();
         }
         var validator = Validation(validatorList, options);
-        addValidatorStateStream(validator.state);
-        return {evaluate: validator.evaluate};
+        var id = register(validator.state);
+        var registered = true;
+        return {
+          evaluate: function(value, cb) {
+            if (!registered) {
+              throw new Error('Cannot evaluate. unregister() has been called for this validator earlier.')
+            }
+            validator.evaluate.apply(this, arguments);
+          },
+          unregister: function() {
+            if (!registered) {
+              throw new Error("Cannot unregister. unregister() can be called only once for validator.");
+            }
+            registered = false;
+            unregister(id);
+          }
+        };
       }
     }
   }

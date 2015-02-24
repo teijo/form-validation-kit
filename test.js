@@ -24,8 +24,37 @@ describe('Input', function() {
     });
 
     var evalStates = [V.Waiting, V.Validating, V.Valid];
-    form.validator(expectOk, {throttle: 0}).evaluate("ok", function(state) {
+    form.register(expectOk, {throttle: 0}).evaluate("ok", function(state) {
       assert.equal(state.state, evalStates.shift(1));
+    });
+  })
+});
+
+describe('Unregister', function() {
+  var validator = null;
+
+  beforeEach(function() {
+    validator = V.Create().register(expectOk);
+  });
+
+  it('succeeds on first try', function() {
+    assert.doesNotThrow(function() { validator.unregister(); });
+  });
+
+  it('fails on second try', function() {
+    assert.doesNotThrow(function() { validator.unregister(); });
+    assert.throws(
+        function() { validator.unregister(); },
+        /Cannot unregister. unregister\(\) can be called only once for validator./);
+  });
+
+  it('fails on evaluate', function(done) {
+    validator.evaluate(true, function() {
+      validator.unregister();
+      assert.throws(
+          function() { validator.evaluate(true); },
+          /Cannot evaluate. unregister\(\) has been called for this validator earlier./);
+      done();
     });
   })
 });
@@ -41,7 +70,7 @@ describe('Error', function() {
     });
 
     var evalStates = [V.Waiting, V.Validating, V.Error];
-    form.validator(expectError, {throttle: 0}).evaluate("", function(state) {
+    form.register(expectError, {throttle: 0}).evaluate("", function(state) {
       assert.equal(state.state, evalStates.shift(1));
     });
   });

@@ -132,9 +132,9 @@
   });
 
   // Validators build from combining earlier definitions
-  var textValidation = form.validator(duplicateValidator("Test"), lengthValidator(6));
-  var numberValidation = form.validator(regexpValidator(/^[0-9]*$/));
-  var timeoutValidation = form.validator(failingValidator, {throttle: 1000});
+  var textValidation = form.register(duplicateValidator("Test"), lengthValidator(6));
+  var numberValidation = form.register(regexpValidator(/^[0-9]*$/));
+  var timeoutValidation = form.register(failingValidator, {throttle: 1000});
 
   function textHandler(event) {
     textValidation.evaluate(event.target.value, visualize(event.target));
