@@ -46,11 +46,11 @@ Validation = (function() {
 
     var requestQueued = input.map({
       state: State.QUEUED,
-      errorMessageList: []
+      errorMessages: []
     });
     var requestSent = throttledInput.map({
       state: State.VALIDATING,
-      errorMessageList: []
+      errorMessages: []
     });
     var response = validationStream.map(function(responseList) {
       return responseList.reduce(function(agg, response) {
@@ -58,11 +58,11 @@ Validation = (function() {
           case State.INVALID:
           case State.ERROR:
             agg.state = response.state;
-            agg.errorMessageList = agg.errorMessageList.concat(response.errorMessage);
+            agg.errorMessages = agg.errorMessages.concat(response.errorMessage);
             break;
         }
         return agg;
-      }, {state: State.VALID, errorMessageList: []});
+      }, {state: State.VALID, errorMessages: []});
     });
 
     var state = Bacon.mergeAll(
@@ -106,10 +106,10 @@ Validation = (function() {
           return (PRECEDENCE.indexOf(state) < PRECEDENCE.indexOf(agg)) ? state : agg;
         }, State.VALID)
       }).map(function(combinedState) {
-        return {state: combinedState, errorMessageList: []};
+        return {state: combinedState, errorMessages: []};
       }).skipDuplicates(function(prev, current) {
-        return prev.errorMessageList.reduce(function(agg, e, i) {
-          return agg && (e === current.errorMessageList[i]);
+        return prev.errorMessages.reduce(function(agg, e, i) {
+          return agg && (e === current.errorMessages[i]);
         }, (prev.state === current.state));
       }).onValue(stateCallback);
     }

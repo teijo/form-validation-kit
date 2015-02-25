@@ -32,7 +32,7 @@
       colors[Validation.Valid] = 'lime';
       colors[Validation.Invalid] = 'pink';
       element.style.backgroundColor = colors[response.state];
-      element.nextElementSibling.textContent = '[' + response.state + '] ' + response.errorMessageList.join(", ");
+      element.nextElementSibling.textContent = '[' + response.state + '] ' + response.errorMessages.join(", ");
     }
   }
 </script>
