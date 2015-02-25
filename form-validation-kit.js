@@ -94,18 +94,24 @@ Validation = (function() {
   function Create(stateCallback) {
     var validatorCount = 0;
     var stateStreams = {};
+    var unsubscribe = function() {};
 
     function updateStream() {
-      Bacon.combineTemplate(stateStreams).map(function(validators) {
+      unsubscribe();
+      unsubscribe = Bacon.combineTemplate(stateStreams).map(function(validators) {
         var PRECEDENCE = [State.ERROR, State.QUEUED, State.VALIDATING, State.INVALID, State.VALID];
         return Object.keys(validators).map(function(k) {
           return validators[k];
         }).reduce(function(agg, state) {
           return (PRECEDENCE.indexOf(state) < PRECEDENCE.indexOf(agg)) ? state : agg;
-        })
+        }, State.VALID)
       }).map(function(combinedState) {
         return {state: combinedState, errorMessageList: []};
-      }).skipDuplicates().onValue(stateCallback);
+      }).skipDuplicates(function(prev, current) {
+        return prev.errorMessageList.reduce(function(agg, e, i) {
+          return agg && (e === current.errorMessageList[i]);
+        }, (prev.state === current.state));
+      }).onValue(stateCallback);
     }
 
     function register(stateStream) {
