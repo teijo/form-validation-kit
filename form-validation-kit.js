@@ -18,9 +18,10 @@ Validation = (function() {
 
   function Validation(validatorList, options) {
     var input = new Bacon.Bus();
-    var throttledInput = input.throttle(options.throttle);
+    var initialInput = new Bacon.Bus();
+    var throttledInput = input.throttle(options.throttle || 100);
 
-    var validationStream = throttledInput.flatMapLatest(function(value) {
+    var validationStream = throttledInput.merge(initialInput).flatMapLatest(function(value) {
       return Bacon.combineAsArray(validatorList.map(function(validator) {
         return Bacon.fromCallback(function(done) {
           validator(
@@ -77,8 +78,11 @@ Validation = (function() {
 
     return {
       state: state.map('.state'),
+      init: function(value) {
+        initialInput.push(value);
+      },
       evaluate: function(value, cb) {
-        if (typeof(cb) !== 'function') {
+        if (cb !== undefined && typeof(cb) !== 'function') {
           throw new Error('Second argument needs to be a function(state) {}')
         }
         state.subscribe(function(event) {
@@ -94,38 +98,39 @@ Validation = (function() {
   function Create(stateCallback) {
     var validatorCount = 0;
     var stateStreams = {};
-    var unsubscribe = function() {};
+    var unplug = function() {};
+    var combinedStreams = new Bacon.Bus();
+
+    combinedStreams.map(function(validators) {
+      var PRECEDENCE = [State.ERROR, State.QUEUED, State.VALIDATING, State.INVALID, State.VALID];
+      return Object.keys(validators).map(function(k) {
+        return validators[k];
+      }).reduce(function(agg, state) {
+        return (PRECEDENCE.indexOf(state) < PRECEDENCE.indexOf(agg)) ? state : agg;
+      }, State.VALID)
+    }).map(function(combinedState) {
+      return {state: combinedState, errorMessages: []};
+    }).skipDuplicates(function(prev, current) {
+      return prev.errorMessages.reduce(function(agg, e, i) {
+        return agg && (e === current.errorMessages[i]);
+      }, (prev.state === current.state));
+    }).onValue(stateCallback);
 
     function updateStream() {
-      unsubscribe();
-      unsubscribe = Bacon.combineTemplate(stateStreams).map(function(validators) {
-        var PRECEDENCE = [State.ERROR, State.QUEUED, State.VALIDATING, State.INVALID, State.VALID];
-        return Object.keys(validators).map(function(k) {
-          return validators[k];
-        }).reduce(function(agg, state) {
-          return (PRECEDENCE.indexOf(state) < PRECEDENCE.indexOf(agg)) ? state : agg;
-        }, State.VALID)
-      }).map(function(combinedState) {
-        return {state: combinedState, errorMessages: []};
-      }).skipDuplicates(function(prev, current) {
-        return prev.errorMessages.reduce(function(agg, e, i) {
-          return agg && (e === current.errorMessages[i]);
-        }, (prev.state === current.state));
-      }).onValue(stateCallback);
+      unplug();
+      unplug = combinedStreams.plug(Bacon.combineTemplate(stateStreams));
     }
 
     function register(stateStream) {
-      stateStreams[validatorCount] = stateStream;
       validatorCount++;
+      stateStreams[validatorCount] = stateStream.toProperty();
       updateStream();
       return validatorCount;
     }
 
     function unregister(id) {
-      return function() {
-        delete stateStreams[id];
-        updateStream();
-      }
+      delete stateStreams[id];
+      updateStream();
     }
 
     return {
@@ -135,7 +140,7 @@ Validation = (function() {
           throw new Error('At least one validator must be given');
         }
 
-        var options = {throttle: 100};
+        var options = {};
         var last = validatorList[validatorList.length - 1];
         if (typeof(last) === 'object') {
           options = last;
@@ -143,6 +148,10 @@ Validation = (function() {
         }
         var validator = Validation(validatorList, options);
         var id = register(validator.state);
+        if (options.init) {
+          validator.init(options.init);
+        }
+
         var registered = true;
         return {
           evaluate: function(value, cb) {
