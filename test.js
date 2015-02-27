@@ -43,6 +43,12 @@ function pass(sequence) {
   }
 }
 
+function call(fn) {
+  return function() {
+    fn()
+  };
+}
+
 function unwrap(x) {
   if (typeof(x) === 'function') {
     return x();
@@ -101,6 +107,21 @@ function last(fn) {
   };
 }
 
+function isTrue(fn) {
+  return function(value) {
+    assert.equal(fn(), true);
+    return value;
+  }
+}
+
+function sleep(ms) {
+  return function(value) {
+    return (new Promise(function(resolve) {
+      setTimeout(resolve, ms);
+    })).return(value);
+  }
+}
+
 function poll(/*...checkCbs*/) {
   var checkCbs = Array.prototype.slice.apply(arguments);
   return function(value) {
@@ -135,6 +156,25 @@ describe('Input', function() {
       assert.equal(state.state, evalStates.shift(1));
     });
   });
+
+  it('minimum idle time for triggering validation can be set', function(done) {
+    var combinedStates = [];
+    var form = V.Create(function(state) { combinedStates.push(state.state); });
+    var m = function(x) { return x * 10 };
+    var threshold = 5;
+
+    seq(register(form, alwaysValid, {throttle: m(threshold)}),
+        evaluate(function(state) { }),
+        sleep(m(2)),
+        evaluate(function(state) { }),
+        sleep(m(3)),
+        evaluate(function(state) { }),
+        sleep(m(4)),
+        isTrue(eq(combinedStates, [V.Waiting])),
+        sleep(m(threshold + 1)),
+        isTrue(eq(combinedStates, [V.Waiting, V.Validating, V.Valid])),
+        call(done))();
+  })
 });
 
 describe('Unregister', function() {

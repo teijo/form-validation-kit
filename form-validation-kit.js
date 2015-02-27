@@ -19,7 +19,7 @@ Validation = (function() {
   function Validation(validatorList, options) {
     var input = new Bacon.Bus();
     var initialInput = new Bacon.Bus();
-    var throttledInput = input.throttle(options.throttle || 100);
+    var throttledInput = input.debounce(options.throttle || 100);
 
     var validationStream = throttledInput.merge(initialInput).flatMapLatest(function(value) {
       return Bacon.combineAsArray(validatorList.map(function(validator) {
