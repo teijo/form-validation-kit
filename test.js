@@ -9,10 +9,22 @@ function expectOk(value, done) {
   }, 0)
 }
 
-function alwaysValid(_, done) {
-  setTimeout(function(){
-    done(true);
-  }, 0);
+function min3(value, done) {
+  setTimeout(function() {
+    done(value.length >= 3, 'Value must be at least 3 long, got ' + value);
+  }, 0)
+}
+
+function validWithDelay(delay) {
+  return function(_, done) {
+    setTimeout(function(){
+      done(true);
+    }, delay);
+  }
+}
+
+function alwaysValid() {
+  return validWithDelay(0).apply(this, arguments);
 }
 
 function alwaysInvalid(_, done) {
@@ -81,9 +93,9 @@ function unregister(validator) {
   validator.unregister();
 }
 
-function evaluate(cb) {
+function evaluate(cb, value) {
   return function(validator) {
-    validator.evaluate("", cb);
+    validator.evaluate(value || "", cb);
     return validator;
   }
 }
@@ -190,7 +202,43 @@ describe('Input', function() {
         sleep(m(threshold + 1)),
         isTrue(eq(states, [{a: V.Waiting}, {b: V.Validating}, {b: V.Valid}])),
         call(done))();
-  })
+  });
+
+  it('triggers evaluation callback based on correct state', function(done) {
+    var combinedStates = [];
+    var form = V.Create(function(state) { combinedStates.push(state.state); });
+    var m = function(x) { return x * 10 };
+    var threshold = 1;
+
+    seq(register(form, min3, {throttle: m(threshold)}),
+        evaluate(function() {}, "1"),
+        sleep(m(threshold + 1)),
+        evaluate(function() {}, "12"),
+        sleep(m(threshold + 1)),
+        evaluate(function() {}, "123"),
+        sleep(m(threshold + 1)),
+        isTrue(eq(combinedStates, [
+          V.Waiting, V.Validating, V.Invalid, // 1
+          V.Waiting, V.Validating, V.Invalid, // 12
+          V.Waiting, V.Validating, V.Valid    // 123
+        ])),
+        call(done))();
+  });
+
+  it('while validating will revert back to queueing', function(done) {
+    var combinedStates = [];
+    var form = V.Create(function(state) { combinedStates.push(state.state); });
+
+    seq(register(form, validWithDelay(100), {throttle: 10}),
+        evaluate(function() {}),
+        sleep(50),               // Wait to start validation
+        evaluate(function() {}), // Interrupt ongoing validation
+        sleep(200),              // Wait validation to resolve
+        isTrue(eq(combinedStates, [
+          V.Waiting, V.Validating, V.Waiting, V.Validating, V.Valid
+        ])),
+        call(done))();
+  });
 });
 
 describe('Unregister', function() {
