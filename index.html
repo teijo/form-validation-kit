@@ -19,20 +19,54 @@
     body {
       max-width: 780px;
     }
+    .queue {
+      padding: 0;
+      position: relative;
+    }
+    .queue:before {
+      content: "State from new to old (left to right)";
+      position: absolute;
+      bottom: -20;
+      margin: auto;
+      font-size: 10px;
+    }
+    .queue li {
+      display: inline-block;
+      height: 20px;
+      width: 30px;
+      padding: 0;
+      font-size: 9px;
+      overflow: hidden;
+      text-align: center;
+      line-height: 20px;
+    }
   </style>
 </head>
 <body onload="testInput()">
 <script>
+  var colors = {};
+  colors[Validation.Error] = 'red';
+  colors[Validation.Waiting] = 'lightgray';
+  colors[Validation.Validating] = 'aqua';
+  colors[Validation.Valid] = 'lime';
+  colors[Validation.Invalid] = 'pink';
+  var queue = {};
+  var maxQueue = 10;
   function visualize(element) {
     return function(response) {
-      var colors = {};
-      colors[Validation.Error] = 'red';
-      colors[Validation.Waiting] = 'lightgray';
-      colors[Validation.Validating] = 'aqua';
-      colors[Validation.Valid] = 'lime';
-      colors[Validation.Invalid] = 'pink';
       element.style.backgroundColor = colors[response.state];
       element.nextElementSibling.textContent = '[' + response.state + '] ' + response.errorMessages.join(", ");
+
+      var id = element.nextElementSibling.nextElementSibling.id;
+      if (queue[id] === undefined) {
+        queue[id] = [];
+      }
+      queue[id].unshift(response.state);
+      queue[id] = queue[id].slice(0, maxQueue);
+
+      element.nextElementSibling.nextElementSibling.innerHTML = queue[id].map(function(state) {
+        return '<li style="background-color: ' + colors[state] + '">' + state + "</li>";
+      }).join("")
     }
   }
 </script>
@@ -49,20 +83,24 @@
       <p>textHandler()</p>
       <input id="textInput" type="text" onkeydown="textHandler(event)" />
       <label for="textInput"></label>
+      <ul class="queue"></ul>
     </li>
     <li>
       <p>numberHandler()</p>
       <input id="numberInput" type="text" onkeydown="numberHandler(event)"/>
       <label for="numberInput"></label>
+      <ul class="queue"></ul>
     </li>
     <li>
       <p>failingHandler()</p>
       <input id="failingInput" type="text" onkeydown="failingHandler(event)"/>
       <label for="failingInput"></label>
+      <ul class="queue"></ul>
     </li>
     <li>
       <input id="formSubmit" type="submit"/>
       <label for="formSubmit"></label>
+      <ul class="queue"></ul>
     </li>
   </dl>
 </form>
