@@ -174,6 +174,22 @@ describe('Input', function() {
         sleep(m(threshold + 1)),
         isTrue(eq(combinedStates, [V.Waiting, V.Validating, V.Valid])),
         call(done))();
+  });
+
+  it('triggers callback only for last evaluation per validator', function(done) {
+    var combinedStates = [];
+    var form = V.Create(function(state) { combinedStates.push(state.state); });
+    var m = function(x) { return x * 10 };
+    var threshold = 5;
+
+    var states = [];
+    seq(register(form, alwaysValid, {throttle: m(threshold)}),
+        evaluate(function(state) { states.push({a: state.state}); }),
+        sleep(m(2)),
+        evaluate(function(state) { states.push({b: state.state}); }),
+        sleep(m(threshold + 1)),
+        isTrue(eq(states, [{a: V.Waiting}, {b: V.Validating}, {b: V.Valid}])),
+        call(done))();
   })
 });
 

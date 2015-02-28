@@ -85,12 +85,14 @@ Validation = (function() {
         if (cb !== undefined && typeof(cb) !== 'function') {
           throw new Error('Second argument needs to be a function(state) {}')
         }
-        state.subscribe(function(event) {
+        var unsubscribe = state.subscribe(function(event) {
           var response = event.value();
           cb(response);
-          return stateResolved(response) ? Bacon.noMore : Bacon.more;
+          var resolved = stateResolved(response);
+          return resolved ? Bacon.noMore : Bacon.more;
         });
         input.push(value);
+        return unsubscribe;
       }
     }
   }
@@ -152,13 +154,17 @@ Validation = (function() {
           validator.init(options.init);
         }
 
+        var ongoingSubscription = function() {};
         var registered = true;
         return {
           evaluate: function(value, cb) {
             if (!registered) {
               throw new Error('Cannot evaluate. unregister() has been called for this validator earlier.')
             }
-            validator.evaluate.apply(this, arguments);
+            // Remove subscription from ongoing evaluation to prevent
+            // duplicate callbacks e.g. when throttling
+            ongoingSubscription();
+            ongoingSubscription = validator.evaluate.apply(this, arguments);
           },
           unregister: function() {
             if (!registered) {
