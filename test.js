@@ -269,6 +269,22 @@ describe('Input', function() {
         ])),
         call(done))();
   })
+
+  it('behaves the same way with synchronous validator', function(done) {
+    var combinedStates = [];
+    var form = V.Create(function(state) {  combinedStates.push(state.state); });
+
+    seq(register(form, synchronousValid, {throttle: 0}),
+        evaluate(function() {}),
+        evaluate(function() {}),
+        evaluate(function() {}),
+        evaluate(function() {}),
+        evaluate(function() {}),
+        poll(eq(combinedStates, [
+          V.Queued, V.Validating, V.Valid
+        ])),
+        call(done))();
+  })
 });
 
 describe('Unregister', function() {

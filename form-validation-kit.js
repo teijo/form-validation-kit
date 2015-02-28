@@ -3,6 +3,8 @@ try {
 } catch(e) {}
 
 Validation = (function() {
+  var DEFAULT_THROTTLE = 0;
+
   var State = {
     // Error occuring during validation, e.g. timeout
     ERROR: 'error',
@@ -20,7 +22,7 @@ Validation = (function() {
     var eventId = 0;
     var input = new Bacon.Bus();
     var initialInput = new Bacon.Bus();
-    var throttling = typeof(options.throttle) === 'number' ? options.throttle : 100;
+    var throttling = typeof(options.throttle) === 'number' ? options.throttle : DEFAULT_THROTTLE;
     var throttledInput = input.debounce(throttling);
 
     var validationStream = throttledInput.merge(initialInput).flatMapLatest(function(event) {
