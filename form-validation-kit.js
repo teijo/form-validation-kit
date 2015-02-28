@@ -73,7 +73,7 @@ Validation = (function() {
     ).skipDuplicates();
 
     function stateResolved(response) {
-      return (response.state === State.INVALID || response.state === State.VALID);
+      return (response.state === State.ERROR || response.state === State.INVALID || response.state === State.VALID);
     }
 
     return {
