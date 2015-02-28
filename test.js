@@ -239,6 +239,20 @@ describe('Input', function() {
         ])),
         call(done))();
   });
+
+  it('same throttle and validation delay', function(done) {
+    var combinedStates = [];
+    var form = V.Create(function(state) { combinedStates.push(state.state); });
+
+    seq(register(form, validWithDelay(100), {throttle: 100}),
+        evaluate(function() {}, 'a'),
+        sleep(150),
+        evaluate(function() {}, 'b'),
+        poll(eq(combinedStates, [
+          V.Waiting, V.Validating, V.Waiting, V.Validating, V.Valid
+        ])),
+        call(done))();
+  });
 });
 
 describe('Unregister', function() {

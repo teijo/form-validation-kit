@@ -17,18 +17,21 @@ Validation = (function() {
   };
 
   function Validation(validatorList, options) {
+    var eventId = 0;
     var input = new Bacon.Bus();
     var initialInput = new Bacon.Bus();
-    var throttledInput = input.debounce(options.throttle || 100);
+    var throttling = typeof(options.throttle) === 'number' ? options.throttle : 100;
+    var throttledInput = input.debounce(throttling);
 
-    var validationStream = throttledInput.merge(initialInput).flatMapLatest(function(value) {
+    var validationStream = throttledInput.merge(initialInput).flatMapLatest(function(event) {
       return Bacon.combineAsArray(validatorList.map(function(validator) {
         return Bacon.fromCallback(function(done) {
           validator(
-              value,
+              event.value,
               // Validation done
               function(isValid, errorMessage) {
                 done({
+                  id: event.id,
                   state: isValid ? State.VALID : State.INVALID,
                   errorMessage: errorMessage || ""
                 });
@@ -36,6 +39,7 @@ Validation = (function() {
               // Validation error
               function(errorMessage) {
                 done({
+                  id: event.id,
                   state: State.ERROR,
                   errorMessage: errorMessage
                 })
@@ -45,16 +49,23 @@ Validation = (function() {
       }));
     });
 
-    var requestQueued = input.map({
-      state: State.QUEUED,
-      errorMessages: []
+    var requestQueued = input.map(function(i) {
+      return {
+        id: i.id,
+        state: State.QUEUED,
+        errorMessages: []
+      }
     });
-    var requestSent = throttledInput.map({
-      state: State.VALIDATING,
-      errorMessages: []
+    var requestSent = throttledInput.map(function(i) {
+      return {
+        id: i.id,
+        state: State.VALIDATING,
+        errorMessages: []
+      }
     });
     var response = validationStream.map(function(responseList) {
       return responseList.reduce(function(agg, response) {
+        agg.id = response.id;
         switch (response.state) {
           case State.INVALID:
           case State.ERROR:
@@ -70,28 +81,39 @@ Validation = (function() {
         requestQueued,
         requestSent,
         response
-    ).skipDuplicates();
+    ).skipDuplicates(function(prev, current) {
+      return prev.state == current.state;
+    });
 
-    function stateResolved(response) {
-      return (response.state === State.ERROR || response.state === State.INVALID || response.state === State.VALID);
+    function nextEventId() {
+      eventId++;
+      return eventId;
     }
 
+    // How to discard events from earlier evaluations without global counter?
+    //
+    // New evaluation always unsubscribes old evaluator callback and registers
+    // its latest callback. Unsubscribe does not "flush" old event chain
+    // (queue->validating->resolved) and so previous resolved state can appear
+    // after current queue state without filtering.
+    var latestState = state.filter(function(event) {
+      return event.id === eventId;
+    });
+
     return {
-      state: state.map('.state'),
+      state: latestState.map('.state'),
       init: function(value) {
-        initialInput.push(value);
+        initialInput.push({id: nextEventId(), value: value});
       },
       evaluate: function(value, cb) {
         if (cb !== undefined && typeof(cb) !== 'function') {
           throw new Error('Second argument needs to be a function(state) {}')
         }
-        var unsubscribe = state.subscribe(function(event) {
-          var response = event.value();
-          cb(response);
-          var resolved = stateResolved(response);
-          return resolved ? Bacon.noMore : Bacon.more;
-        });
-        input.push(value);
+
+        var latestId = nextEventId();
+
+        var unsubscribe = latestState.onValue(cb);
+        input.push({id: latestId, value: value});
         return unsubscribe;
       }
     }
