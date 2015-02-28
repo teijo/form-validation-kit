@@ -8,23 +8,36 @@
       list-style: none;
       padding: 10px;
     }
-    .demo {
-      display: block;
-      padding: 5px;
-      background-color: #EEE;
+    .demo, code {
+      display: inline-block;
+      padding: 2px 5px;
+      color: #111;
+      background-color: #CCC;
       white-space: pre;
       font-family: monospace;
-      font-size: 11px;
+      font-size: 12px;
+      border-radius: 3px;
+    }
+    html {
+      background-color: #EEE;
     }
     body {
+      padding: 10px;
       max-width: 780px;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      margin: auto;
+      background-color: #FFF;
     }
     .queue {
       padding: 0;
       position: relative;
+      border: 1px solid #CCC;
+      width: 50%;
+      margin: 5px 0;
+      background-color: #EEE;
     }
     .queue:before {
-      content: "State from new to old (left to right)";
+      content: "Input validator state history";
       position: absolute;
       bottom: -20;
       margin: auto;
@@ -33,28 +46,70 @@
     .queue li {
       display: inline-block;
       height: 20px;
-      width: 30px;
+      width: 10%;
       padding: 0;
       font-size: 9px;
       overflow: hidden;
       text-align: center;
       line-height: 20px;
     }
+    input[type=text] {
+      padding: 5px;
+      border: 1px solid #999;
+      border-radius: 3px;
+      border-style: inset;
+    }
+    input[type=submit] {
+      padding: 5px;
+      border-style: outset;
+    }
+    input[type=submit]:disabled {
+      color: #333;
+      opacity: 0.3;
+    }
+    .error {
+      background-color: #C66;
+    }
+    .queued {
+      background-color: #CC6;
+    }
+    .validating {
+      background-color: #6CF;
+    }
+    .valid {
+      background-color: #6C6;
+    }
+    .invalid {
+      background-color: pink;
+    }
+    dt {
+      display: inline-block;
+      padding: 5px;
+      border-radius: 3px;
+    }
+    dd {
+      padding: 5px;
+    }
+    dl, ul {
+      padding: 20px;
+    }
   </style>
 </head>
 <body onload="testInput()">
 <script>
   var colors = {};
-  colors[Validation.Error] = 'red';
-  colors[Validation.Queued] = 'lightgray';
-  colors[Validation.Validating] = 'aqua';
-  colors[Validation.Valid] = 'lime';
+  colors[Validation.Error] = '#C66';
+  colors[Validation.Queued] = '#CC6';
+  colors[Validation.Validating] = '#6CF';
+  colors[Validation.Valid] = '#6C6';
   colors[Validation.Invalid] = 'pink';
   var queue = {};
   var maxQueue = 10;
   function visualize(element) {
     return function(response) {
-      element.style.backgroundColor = colors[response.state];
+//      element.style.backgroundColor = colors[response.state];
+//      element.style.borderColor = colors[response.state];
+      element.className = response.state;
       element.nextElementSibling.textContent = '[' + response.state + '] ' + response.errorMessages.join(", ");
 
       var id = element.nextElementSibling.nextElementSibling.id;
@@ -65,7 +120,7 @@
       queue[id] = queue[id].slice(0, maxQueue);
 
       element.nextElementSibling.nextElementSibling.innerHTML = queue[id].map(function(state) {
-        return '<li style="background-color: ' + colors[state] + '">' + state + "</li>";
+        return '<li class="' + state + '">' + state + "</li>";
       }).join("")
     }
   }
@@ -76,33 +131,36 @@
 <p><a href="https://github.com/teijo/form-validation-kit">Project repository at Github</a></p>
 
 <h2>Demo form</h2>
-<p>Filled on reload. Modify the inputs and play around.</p>
+<p>Filled on reload. Modify the inputs and play around. All fields are
+  combined into a single form. All inputs need to be valid in order for the
+  submit to be enabled.</p>
 <form autocomplete="off">
-  <dl>
+  <ul>
     <li>
-      <p>textHandler()</p>
+      <p>textHandler() validator</p>
       <input id="textInput" type="text" onkeyup="textHandler(event)" />
       <label for="textInput"></label>
       <ul class="queue" id="textVisu"></ul>
     </li>
     <li>
-      <p>numberHandler()</p>
+      <p>numberHandler() validator</p>
       <input id="numberInput" type="text" onkeyup="numberHandler(event)"/>
       <label for="numberInput"></label>
       <ul class="queue" id="numberVisu"></ul>
     </li>
     <li>
-      <p>failingHandler()</p>
+      <p>failingHandler() validator</p>
       <input id="failingInput" type="text" onkeyup="failingHandler(event)"/>
       <label for="failingInput"></label>
       <ul class="queue" id="failingVisu"></ul>
     </li>
     <li>
+      <p>Combined validator state</p>
       <input id="formSubmit" type="submit"/>
       <label for="formSubmit"></label>
       <ul class="queue" id="formVisu"></ul>
     </li>
-  </dl>
+  </ul>
 </form>
 
 <h2>Sample validators</h2>
@@ -154,13 +212,18 @@
   for the form is INVALID. If state of one <code>validator</code> is
   VALIDATING (result pending from asynchronous validation), state of
   <code>form</code> is VALIDATING. Precedence from first to last is listed below:</p>
-<ol>
-  <li>ERROR: Validator could not correctly determine the validity of the input</li>
-  <li>QUEUED: Input received but validator invocation is waiting for throttle cooldown</li>
-  <li>VALIDATING: Validator invoked with latest value and waiting for response</li>
-  <li>INVALID: Validator has evaluated input as invalid</li>
-  <li>VALID: Validator has evaluated input as valid</li>
-</ol>
+<dl>
+  <dt class="error">ERROR</dt>
+  <dd>Validator could not correctly determine the validity of the input</dd>
+  <dt class="queued">QUEUED</dd>
+  <dd>Input received but validator invocation is waiting for throttle cooldown</dd>
+  <dt class="validating">VALIDATING</dd>
+  <dd>Validator invoked with latest value and waiting for response</dd>
+  <dt class="invalid">INVALID</dd>
+  <dd>Validator has evaluated input as invalid</dd>
+  <dt class="valid">VALID</dd>
+  <dd>Validator has evaluated input as valid</dd>
+</dl>
 
 <script class="demo">
   var form = Validation.Create(function(state) {
