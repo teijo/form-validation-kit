@@ -39,6 +39,10 @@ function expectError(value, done, error) {
   }, 0)
 }
 
+function synchronousValid(_, done) {
+  done(true);
+}
+
 function seq() {
   var promises = arguments;
   return function(value) {
@@ -253,6 +257,18 @@ describe('Input', function() {
         ])),
         call(done))();
   });
+
+  it('behaves the same way with throttled synchronous validator', function(done) {
+    var combinedStates = [];
+    var form = V.Create(function(state) { combinedStates.push(state.state); });
+
+    seq(register(form, synchronousValid, {throttle: 100}),
+        evaluate(function() {}),
+        poll(eq(combinedStates, [
+          V.Queued, V.Validating, V.Valid
+        ])),
+        call(done))();
+  })
 });
 
 describe('Unregister', function() {

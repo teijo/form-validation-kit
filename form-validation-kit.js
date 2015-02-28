@@ -26,25 +26,29 @@ Validation = (function() {
     var validationStream = throttledInput.merge(initialInput).flatMapLatest(function(event) {
       return Bacon.combineAsArray(validatorList.map(function(validator) {
         return Bacon.fromCallback(function(done) {
-          validator(
-              event.value,
-              // Validation done
-              function(isValid, errorMessage) {
-                done({
-                  id: event.id,
-                  state: isValid ? State.VALID : State.INVALID,
-                  errorMessage: errorMessage || ""
-                });
-              },
-              // Validation error
-              function(errorMessage) {
-                done({
-                  id: event.id,
-                  state: State.ERROR,
-                  errorMessage: errorMessage
-                })
-              }
-          );
+          // Find better approach. Synchronous done() call from validator
+          // should also trigger VALIDATING state, therefore setTimeout 0.
+          setTimeout(function() {
+            validator(
+                event.value,
+                // Validation done
+                function(isValid, errorMessage) {
+                  done({
+                    id: event.id,
+                    state: isValid ? State.VALID : State.INVALID,
+                    errorMessage: errorMessage || ""
+                  });
+                },
+                // Validation error
+                function(errorMessage) {
+                  done({
+                    id: event.id,
+                    state: State.ERROR,
+                    errorMessage: errorMessage
+                  })
+                }
+            );
+          }, 0)
         });
       }));
     });
