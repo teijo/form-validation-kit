@@ -155,7 +155,7 @@ function poll(/*...checkCbs*/) {
 
 describe('Input', function() {
   it('triggers Valid state', function(done) {
-    var createStates = [V.Waiting, V.Validating, V.Valid];
+    var createStates = [V.Queued, V.Validating, V.Valid];
     var form = V.Create(function(state) {
       assert.equal(state.state, createStates.shift(1));
       if (state.state === V.Valid) {
@@ -163,7 +163,7 @@ describe('Input', function() {
       }
     });
 
-    var evalStates = [V.Waiting, V.Validating, V.Valid];
+    var evalStates = [V.Queued, V.Validating, V.Valid];
     form.register(expectOk, {throttle: 0}).evaluate("ok", function(state) {
       assert.equal(state.state, evalStates.shift(1));
     });
@@ -182,9 +182,9 @@ describe('Input', function() {
         sleep(m(3)),
         evaluate(function(state) { }),
         sleep(m(4)),
-        isTrue(eq(combinedStates, [V.Waiting])),
+        isTrue(eq(combinedStates, [V.Queued])),
         sleep(m(threshold + 1)),
-        isTrue(eq(combinedStates, [V.Waiting, V.Validating, V.Valid])),
+        isTrue(eq(combinedStates, [V.Queued, V.Validating, V.Valid])),
         call(done))();
   });
 
@@ -200,7 +200,7 @@ describe('Input', function() {
         sleep(m(2)),
         evaluate(function(state) { states.push({b: state.state}); }),
         sleep(m(threshold + 1)),
-        isTrue(eq(states, [{a: V.Waiting}, {b: V.Validating}, {b: V.Valid}])),
+        isTrue(eq(states, [{a: V.Queued}, {b: V.Validating}, {b: V.Valid}])),
         call(done))();
   });
 
@@ -218,9 +218,9 @@ describe('Input', function() {
         evaluate(function() {}, "123"),
         sleep(m(threshold + 1)),
         isTrue(eq(combinedStates, [
-          V.Waiting, V.Validating, V.Invalid, // 1
-          V.Waiting, V.Validating, V.Invalid, // 12
-          V.Waiting, V.Validating, V.Valid    // 123
+          V.Queued, V.Validating, V.Invalid, // 1
+          V.Queued, V.Validating, V.Invalid, // 12
+          V.Queued, V.Validating, V.Valid    // 123
         ])),
         call(done))();
   });
@@ -235,7 +235,7 @@ describe('Input', function() {
         evaluate(function() {}), // Interrupt ongoing validation
         sleep(200),              // Wait validation to resolve
         isTrue(eq(combinedStates, [
-          V.Waiting, V.Validating, V.Waiting, V.Validating, V.Valid
+          V.Queued, V.Validating, V.Queued, V.Validating, V.Valid
         ])),
         call(done))();
   });
@@ -249,7 +249,7 @@ describe('Input', function() {
         sleep(150),
         evaluate(function() {}, 'b'),
         poll(eq(combinedStates, [
-          V.Waiting, V.Validating, V.Waiting, V.Validating, V.Valid
+          V.Queued, V.Validating, V.Queued, V.Validating, V.Valid
         ])),
         call(done))();
   });
@@ -303,8 +303,8 @@ describe('Unregister', function() {
       seq(register(form, alwaysValid, {init: "XXX", throttle: 100}),
           poll(eq(combined, [V.Valid])),
           evaluate(function(state){ aStates.push(state.state); }),
-          poll(eq(As, [V.Waiting, V.Validating, V.Valid])),
-          poll(eq(combined, [V.Valid, V.Waiting, V.Validating, V.Valid])),
+          poll(eq(As, [V.Queued, V.Validating, V.Valid])),
+          poll(eq(combined, [V.Valid, V.Queued, V.Validating, V.Valid])),
           register(form, alwaysInvalid, {init: "", throttle: 0}),
           evaluate(function(state){ bStates.push(state.state); }),
           poll(eq(last(Bs), [V.Invalid])),
@@ -318,7 +318,7 @@ describe('Unregister', function() {
 
 describe('Error', function() {
   it('triggers Error state', function(done) {
-    var createStates = [V.Waiting, V.Validating, V.Error];
+    var createStates = [V.Queued, V.Validating, V.Error];
     var form = V.Create(function(state) {
       assert.equal(state.state, createStates.shift(1));
       if (state.state === V.Error) {
@@ -326,7 +326,7 @@ describe('Error', function() {
       }
     });
 
-    var evalStates = [V.Waiting, V.Validating, V.Error];
+    var evalStates = [V.Queued, V.Validating, V.Error];
     seq(register(form, expectError, {throttle: 0}),
         evaluate(function(state) {
           assert.equal(state.state, evalStates.shift(1));

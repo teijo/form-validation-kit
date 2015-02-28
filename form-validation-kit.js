@@ -201,7 +201,7 @@ Validation = (function() {
   }
   return {
     Error: State.ERROR,
-    Waiting: State.QUEUED,
+    Queued: State.QUEUED,
     Validating: State.VALIDATING,
     Invalid: State.INVALID,
     Valid: State.VALID,
