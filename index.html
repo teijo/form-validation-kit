@@ -185,7 +185,7 @@
     return function(value, done) {
       setTimeout(function() {
         done(value.length >= minLength, "Minimum length is " + minLength);
-      }, 100);
+      }, 1000);
     }
   }
 
@@ -233,8 +233,8 @@
   });
 
   // Validators build from combining earlier definitions
-  var textValidation = form.register(duplicateValidator("Test"), lengthValidator(6));
-  var numberValidation = form.register(regexpValidator(/^[0-9]*$/));
+  var textValidation = form.register(duplicateValidator("Test"), lengthValidator(6), {throttle: 500});
+  var numberValidation = form.register(regexpValidator(/^[0-9]*$/), {throttle: 200});
   var timeoutValidation = form.register(failingValidator, {throttle: 1000});
 
   function textHandler(event) {
