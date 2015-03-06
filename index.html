@@ -137,6 +137,12 @@
 <form autocomplete="off">
   <ul>
     <li>
+      <p>syncHandler() validator</p>
+      <input id="syncInput" type="text" onkeyup="syncHandler(event)" />
+      <label for="textInput"></label>
+      <ul class="queue" id="syncVisu"></ul>
+    </li>
+    <li>
       <p>textHandler() validator</p>
       <input id="textInput" type="text" onkeyup="textHandler(event)" />
       <label for="textInput"></label>
@@ -173,6 +179,17 @@
   (see below).</p>
 
 <script class="demo">
+  function syncReturn(value) {
+    switch (value.length % 3) {
+      case 0:
+        return;
+      case 1:
+        return "Invalid is string";
+      case 2:
+        throw new Error("Error is exception")
+    }
+  }
+
   function duplicateValidator(text) {
     return function(value, done) {
       setTimeout(function() {
@@ -233,9 +250,14 @@
   });
 
   // Validators build from combining earlier definitions
+  var syncValidation = form.register(syncReturn);
   var textValidation = form.register(duplicateValidator("Test"), lengthValidator(6), {throttle: 500});
   var numberValidation = form.register(regexpValidator(/^[0-9]*$/), {throttle: 200});
   var timeoutValidation = form.register(failingValidator, {throttle: 1000});
+
+  function syncHandler(event) {
+    syncValidation.evaluate(event.target.value, visualize(event.target));
+  }
 
   function textHandler(event) {
     textValidation.evaluate(event.target.value, visualize(event.target));
@@ -260,6 +282,7 @@
     });
   }
   function testInput() {
+    emulateTyping('syncInput', "012012012", 300);
     emulateTyping('textInput', "Test some long text", 150);
     emulateTyping('numberInput', "1234ABCD", 400);
     emulateTyping('failingInput', "timeout", 300);

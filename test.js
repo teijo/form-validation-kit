@@ -16,15 +16,17 @@ function min3(value, done) {
 }
 
 function validWithDelay(delay) {
-  return function(_, done) {
+  return function(_, done, error) {
     setTimeout(function(){
       done(true);
     }, delay);
   }
 }
 
-function alwaysValid() {
-  return validWithDelay(0).apply(this, arguments);
+function alwaysValid(_, done, error) {
+  setTimeout(function(){
+    done(true);
+  }, 0);
 }
 
 function alwaysInvalid(_, done) {
@@ -39,8 +41,8 @@ function expectError(value, done, error) {
   }, 0)
 }
 
-function synchronousValid(_, done) {
-  done(true);
+function synchronousValid(_) {
+  return;
 }
 
 function seq() {
@@ -157,7 +159,7 @@ function poll(/*...checkCbs*/) {
   };
 }
 
-describe('Input', function() {
+describe('Input for asynchronous validator', function() {
   it('triggers Valid state', function(done) {
     var createStates = [V.Queued, V.Validating, V.Valid];
     var form = V.Create(function(state) {
@@ -168,7 +170,7 @@ describe('Input', function() {
     });
 
     var evalStates = [V.Queued, V.Validating, V.Valid];
-    form.register(expectOk, {throttle: 0}).evaluate("ok", function(state) {
+    form.register(expectOk, {throttle: 10}).evaluate("ok", function(state) {
       assert.equal(state.state, evalStates.shift(1));
     });
   });
@@ -257,20 +259,22 @@ describe('Input', function() {
         ])),
         call(done))();
   });
+});
 
-  it('behaves the same way with throttled synchronous validator', function(done) {
+describe('Input for synchronous validator', function() {
+  it('gets queued with throttling', function(done) {
     var combinedStates = [];
     var form = V.Create(function(state) { combinedStates.push(state.state); });
 
     seq(register(form, synchronousValid, {throttle: 100}),
         evaluate(function() {}),
         poll(eq(combinedStates, [
-          V.Queued, V.Validating, V.Valid
+          V.Queued, V.Valid
         ])),
         call(done))();
   })
 
-  it('behaves the same way with synchronous validator', function(done) {
+  it('leads to immediate valid state', function(done) {
     var combinedStates = [];
     var form = V.Create(function(state) {  combinedStates.push(state.state); });
 
@@ -280,9 +284,7 @@ describe('Input', function() {
         evaluate(function() {}),
         evaluate(function() {}),
         evaluate(function() {}),
-        poll(eq(combinedStates, [
-          V.Queued, V.Validating, V.Valid
-        ])),
+        eq(combinedStates, [V.Valid]),
         call(done))();
   })
 });
@@ -359,7 +361,7 @@ describe('Error', function() {
     });
 
     var evalStates = [V.Queued, V.Validating, V.Error];
-    seq(register(form, expectError, {throttle: 0}),
+    seq(register(form, expectError, {throttle: 10}),
         evaluate(function(state) {
           assert.equal(state.state, evalStates.shift(1));
         }))();

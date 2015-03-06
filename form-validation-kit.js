@@ -25,12 +25,38 @@ Validation = (function() {
     var throttling = typeof(options.throttle) === 'number' ? options.throttle : DEFAULT_THROTTLE;
     var throttledInput = input.debounce(throttling);
 
+    var hasAsyncValidators = validatorList.reduce(function(acc, v) { return acc || v.length > 1; }, false);
+
     var validationStream = throttledInput.merge(initialInput).flatMapLatest(function(event) {
       return Bacon.combineAsArray(validatorList.map(function(validator) {
         return Bacon.fromCallback(function(done) {
-          // Find better approach. Synchronous done() call from validator
-          // should also trigger VALIDATING state, therefore setTimeout 0.
-          setTimeout(function() {
+          var arity = validator.length;
+          if (arity == 1) {
+            var state = null;
+            var errorMessage = null;
+            try {
+              var result = validator(event.value);
+              switch (typeof(result)) {
+                case "undefined":
+                    state = State.VALID;
+                  break;
+                case "string":
+                  state = State.INVALID;
+                  errorMessage = result;
+                  break;
+                default:
+                  throw new Error("Synchronous validator API: Return string for INVALID, nothing for VALID, and throw exception for ERROR state.");
+              }
+            } catch (e) {
+              state = State.ERROR;
+              errorMessage = e.message;
+            }
+            done({
+              id: event.id,
+              state: state,
+              errorMessage: errorMessage
+            });
+          } else if (arity == 2 || arity == 3) {
             validator(
                 event.value,
                 // Validation done
@@ -50,10 +76,14 @@ Validation = (function() {
                   })
                 }
             );
-          }, 0)
+          } else {
+            throw new Error("Synchronous validator type is Function(string), asynchronous type is Function(string, done(bool, string), error(string)), got function taking " + arity + " arguments.");
+          }
         });
       }));
     });
+
+    var streams = [];
 
     var requestQueued = input.map(function(i) {
       return {
@@ -62,6 +92,10 @@ Validation = (function() {
         errorMessages: []
       }
     });
+    if (throttling > 0) {
+      streams.push(requestQueued);
+    }
+
     var requestSent = throttledInput.map(function(i) {
       return {
         id: i.id,
@@ -69,6 +103,10 @@ Validation = (function() {
         errorMessages: []
       }
     });
+    if (hasAsyncValidators) {
+      streams.push(requestSent);
+    }
+
     var response = validationStream.map(function(responseList) {
       return responseList.reduce(function(agg, response) {
         agg.id = response.id;
@@ -82,12 +120,9 @@ Validation = (function() {
         return agg;
       }, {state: State.VALID, errorMessages: []});
     });
+    streams.push(response);
 
-    var state = Bacon.mergeAll(
-        requestQueued,
-        requestSent,
-        response
-    ).skipDuplicates(function(prev, current) {
+    var state = Bacon.mergeAll.apply(this, streams).skipDuplicates(function(prev, current) {
       return prev.state == current.state;
     });
 
