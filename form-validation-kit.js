@@ -178,11 +178,9 @@ Validation = (function() {
         return (PRECEDENCE.indexOf(state) < PRECEDENCE.indexOf(agg)) ? state : agg;
       }, State.VALID)
     }).map(function(combinedState) {
-      return {state: combinedState, errorMessages: []};
+      return {state: combinedState};
     }).skipDuplicates(function(prev, current) {
-      return prev.errorMessages.reduce(function(agg, e, i) {
-        return agg && (e === current.errorMessages[i]);
-      }, (prev.state === current.state));
+      return (prev.state === current.state);
     }).onValue(stateCallback);
 
     function updateStream() {
