@@ -19,6 +19,12 @@ Validation = (function() {
   };
 
   function Validation(validatorList, options) {
+    validatorList.forEach(function(v) {
+      var arity = v.length;
+      if (arity < 1 || arity > 3) {
+        throw new Error("Synchronous validator type is Function(string), asynchronous type is Function(string, done(bool, string), error(string)), got function taking " + arity + " arguments.");
+      }
+    });
     var eventId = 0;
     var input = new Bacon.Bus();
     var initialInput = new Bacon.Bus();
@@ -30,11 +36,11 @@ Validation = (function() {
     var validationStream = throttledInput.merge(initialInput).flatMapLatest(function(event) {
       return Bacon.combineAsArray(validatorList.map(function(validator) {
         return Bacon.fromCallback(function(done) {
-          var arity = validator.length;
-          if (arity == 1) {
+          if (validator.length == 1) {
             var state = null;
             var errorMessage = null;
             try {
+              var result = validator(event.value);
               var result = validator(event.value);
               switch (typeof(result)) {
                 case "undefined":
@@ -56,7 +62,7 @@ Validation = (function() {
               state: state,
               errorMessage: errorMessage
             });
-          } else if (arity == 2 || arity == 3) {
+          } else {
             validator(
                 event.value,
                 // Validation done
@@ -76,8 +82,6 @@ Validation = (function() {
                   })
                 }
             );
-          } else {
-            throw new Error("Synchronous validator type is Function(string), asynchronous type is Function(string, done(bool, string), error(string)), got function taking " + arity + " arguments.");
           }
         });
       }));

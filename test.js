@@ -350,6 +350,28 @@ describe('Unregister', function() {
   })
 });
 
+describe('Registration', function() {
+  function arityError(arity) {
+    return new RegExp("Synchronous validator type is Function\\(string\\), asynchronous type is Function\\(string, done\\(bool, string\\), error\\(string\\)\\), got function taking " + arity + " arguments.", "g");
+  }
+
+  it('throws exception with too few callback arguments', function() {
+    var form = V.Create(function() {});
+
+    assert.throws(function() {
+      form.register(function() {});
+    }, arityError(0));
+  });
+
+  it('throws exception with too many callback arguments', function() {
+    var form = V.Create(function() {});
+
+    assert.throws(function() {
+      form.register(function(a, b, c, d) {});
+    }, arityError(4));
+  });
+});
+
 describe('Error', function() {
   it('triggers Error state', function(done) {
     var createStates = [V.Queued, V.Validating, V.Error];
