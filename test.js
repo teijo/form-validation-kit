@@ -187,6 +187,8 @@ function pushResponse(array) {
   }
 }
 
+var nop = function() {};
+
 describe('Input for asynchronous validator', function() {
   it('triggers Valid state', function(done) {
     var createStates = [V.Queued, V.Validating, V.Valid];
@@ -210,11 +212,11 @@ describe('Input for asynchronous validator', function() {
     var threshold = 5;
 
     seq(register(form, alwaysValid, {throttle: m(threshold)}),
-        evaluate(function(state) { }),
+        evaluate(nop),
         sleep(m(2)),
-        evaluate(function(state) { }),
+        evaluate(nop),
         sleep(m(3)),
-        evaluate(function(state) { }),
+        evaluate(nop),
         sleep(m(4)),
         isTrue(eq(combinedStates, [V.Queued])),
         sleep(m(threshold + 1)),
@@ -245,11 +247,11 @@ describe('Input for asynchronous validator', function() {
     var threshold = 1;
 
     seq(register(form, min3, {throttle: m(threshold)}),
-        evaluate(function() {}, "1"),
+        evaluate(nop, "1"),
         sleep(m(threshold + 1)),
-        evaluate(function() {}, "12"),
+        evaluate(nop, "12"),
         sleep(m(threshold + 1)),
-        evaluate(function() {}, "123"),
+        evaluate(nop, "123"),
         sleep(m(threshold + 1)),
         isTrue(eq(combinedStates, [
           V.Queued, V.Validating, V.Invalid, // 1
@@ -264,9 +266,9 @@ describe('Input for asynchronous validator', function() {
     var form = V.Create(pushState(combinedStates));
 
     seq(register(form, validWithDelay(100), {throttle: 10}),
-        evaluate(function() {}),
+        evaluate(nop),
         sleep(50),               // Wait to start validation
-        evaluate(function() {}), // Interrupt ongoing validation
+        evaluate(nop), // Interrupt ongoing validation
         sleep(200),              // Wait validation to resolve
         isTrue(eq(combinedStates, [
           V.Queued, V.Validating, V.Queued, V.Validating, V.Valid
@@ -279,9 +281,9 @@ describe('Input for asynchronous validator', function() {
     var form = V.Create(pushState(combinedStates));
 
     seq(register(form, validWithDelay(100), {throttle: 100}),
-        evaluate(function() {}, 'a'),
+        evaluate(nop, 'a'),
         sleep(150),
-        evaluate(function() {}, 'b'),
+        evaluate(nop, 'b'),
         poll(eq(combinedStates, [
           V.Queued, V.Validating, V.Queued, V.Validating, V.Valid
         ])),
@@ -311,7 +313,7 @@ describe('Input for synchronous validator', function() {
     var form = V.Create(pushState(combinedStates));
 
     seq(register(form, synchronousValid, {throttle: 100}),
-        evaluate(function() {}),
+        evaluate(nop),
         poll(eq(combinedStates, [
           V.Queued, V.Valid
         ])),
@@ -323,11 +325,11 @@ describe('Input for synchronous validator', function() {
     var form = V.Create(pushState(combinedStates));
 
     seq(register(form, synchronousValid, {throttle: 0}),
-        evaluate(function() {}),
-        evaluate(function() {}),
-        evaluate(function() {}),
-        evaluate(function() {}),
-        evaluate(function() {}),
+        evaluate(nop),
+        evaluate(nop),
+        evaluate(nop),
+        evaluate(nop),
+        evaluate(nop),
         eq(combinedStates, [V.Valid]),
         call(done))();
   })
@@ -398,15 +400,15 @@ describe('Registration', function() {
   }
 
   it('throws exception with too few callback arguments', function() {
-    var form = V.Create(function() {});
+    var form = V.Create(nop);
 
     assert.throws(function() {
-      form.register(function() {});
+      form.register(nop);
     }, arityError(0));
   });
 
   it('throws exception with too many callback arguments', function() {
-    var form = V.Create(function() {});
+    var form = V.Create(nop);
 
     assert.throws(function() {
       form.register(function(a, b, c, d) {});
