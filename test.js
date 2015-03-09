@@ -23,6 +23,22 @@ function validWithDelay(delay) {
   }
 }
 
+function invalidResponse(data) {
+  return function(_, done, error) {
+    setTimeout(function(){
+      done(false, data);
+    }, 10);
+  }
+}
+
+function validResponse(data) {
+  return function(value, done, error) {
+    setTimeout(function(){
+      done(true, data);
+    }, 10);
+  }
+}
+
 function alwaysValid(_, done, error) {
   setTimeout(function(){
     done(true);
@@ -259,6 +275,24 @@ describe('Input for asynchronous validator', function() {
         ])),
         call(done))();
   });
+
+  it('can return an object to state callback', function(done) {
+    var combinedStates = [];
+    var responses = [];
+    var form = V.Create(function(state) { combinedStates.push(state.state); });
+
+    seq(register(form, validResponse({foo: "bar"})),
+      evaluate(function(state) {
+        responses.push(state.response);
+      }),
+      poll(eq(combinedStates, [
+        V.Validating, V.Valid
+      ])),
+      poll(eq(responses, [
+        [], [{foo: "bar"}]
+      ])),
+      call(done))();
+  })
 });
 
 describe('Input for synchronous validator', function() {

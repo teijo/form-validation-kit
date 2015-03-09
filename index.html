@@ -110,7 +110,7 @@
 //      element.style.backgroundColor = colors[response.state];
 //      element.style.borderColor = colors[response.state];
       element.className = response.state;
-      element.nextElementSibling.textContent = '[' + response.state + '] ' + response.errorMessages.join(", ");
+      element.nextElementSibling.textContent = '[' + response.state + '] ' + response.response;
 
       var id = element.nextElementSibling.nextElementSibling.id;
       if (queue[id] === undefined) {

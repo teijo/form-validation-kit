@@ -38,47 +38,47 @@ Validation = (function() {
         return Bacon.fromCallback(function(done) {
           if (validator.length == 1) {
             var state = null;
-            var errorMessage = null;
+            var response = null;
             try {
-              var result = validator(event.value);
               var result = validator(event.value);
               switch (typeof(result)) {
                 case "undefined":
-                    state = State.VALID;
+                case "boolean":
+                  state = (result === false) ? State.INVALID : State.VALID /*undefined or true*/;
                   break;
                 case "string":
                   state = State.INVALID;
-                  errorMessage = result;
+                  response = result;
                   break;
                 default:
                   throw new Error("Synchronous validator API: Return string for INVALID, nothing for VALID, and throw exception for ERROR state.");
               }
             } catch (e) {
               state = State.ERROR;
-              errorMessage = e.message;
+              response = e.message;
             }
             done({
               id: event.id,
               state: state,
-              errorMessage: errorMessage
+              response: response
             });
           } else {
             validator(
                 event.value,
                 // Validation done
-                function(isValid, errorMessage) {
+                function(isValid, response) {
                   done({
                     id: event.id,
                     state: isValid ? State.VALID : State.INVALID,
-                    errorMessage: errorMessage || ""
+                    response: response
                   });
                 },
                 // Validation error
-                function(errorMessage) {
+                function(response) {
                   done({
                     id: event.id,
                     state: State.ERROR,
-                    errorMessage: errorMessage
+                    response: response
                   })
                 }
             );
@@ -93,7 +93,7 @@ Validation = (function() {
       return {
         id: i.id,
         state: State.QUEUED,
-        errorMessages: []
+        response: []
       }
     });
     if (throttling > 0) {
@@ -104,7 +104,7 @@ Validation = (function() {
       return {
         id: i.id,
         state: State.VALIDATING,
-        errorMessages: []
+        response: []
       }
     });
     if (hasAsyncValidators) {
@@ -115,14 +115,15 @@ Validation = (function() {
       return responseList.reduce(function(agg, response) {
         agg.id = response.id;
         switch (response.state) {
+          case State.VALID:
           case State.INVALID:
           case State.ERROR:
             agg.state = response.state;
-            agg.errorMessages = agg.errorMessages.concat(response.errorMessage);
+            agg.response = agg.response.concat(response.response);
             break;
         }
         return agg;
-      }, {state: State.VALID, errorMessages: []});
+      }, {state: State.VALID, response: []});
     });
     streams.push(response);
 
