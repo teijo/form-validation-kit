@@ -1,4 +1,4 @@
-var V = require('./form-validation-kit2');
+var V = require('./form-validation-kit');
 var assert = require("assert");
 var Promise = require("bluebird");
 var _ = require("lodash");

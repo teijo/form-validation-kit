@@ -3,7 +3,6 @@
   <script type="text/javascript" src="demo-libs/Bacon.min.js"></script>
   <script type="text/javascript" src="http://localhost:35729/livereload.js"></script>
   <script type="text/javascript" src="form-validation-kit.js"></script>
-  <script type="text/javascript" src="form-validation-kit2.js"></script>
   <style>
     li {
       list-style: none;
@@ -99,11 +98,11 @@
 <body>
 <script>
   var colors = {};
-  colors[Validation.Error] = '#C66';
-  colors[Validation.Queued] = '#CC6';
-  colors[Validation.Validating] = '#6CF';
-  colors[Validation.Valid] = '#6C6';
-  colors[Validation.Invalid] = 'pink';
+  colors[Chain.Error] = '#C66';
+  colors[Chain.Queued] = '#CC6';
+  colors[Chain.Validating] = '#6CF';
+  colors[Chain.Valid] = '#6C6';
+  colors[Chain.Invalid] = 'pink';
   var queue = {};
   var maxQueue = 10;
   function visualize(element) {
