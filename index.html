@@ -3,6 +3,7 @@
   <script type="text/javascript" src="demo-libs/Bacon.min.js"></script>
   <script type="text/javascript" src="http://localhost:35729/livereload.js"></script>
   <script type="text/javascript" src="form-validation-kit.js"></script>
+  <script type="text/javascript" src="form-validation-kit2.js"></script>
   <style>
     li {
       list-style: none;
@@ -110,7 +111,7 @@
 //      element.style.backgroundColor = colors[response.state];
 //      element.style.borderColor = colors[response.state];
       element.className = response.state;
-      element.nextElementSibling.textContent = '[' + response.state + '] ' + response.response;
+      element.nextElementSibling.textContent = '[' + response.state + '] ' + response.response ? response.response : "";
 
       var id = element.nextElementSibling.nextElementSibling.id;
       if (queue[id] === undefined) {
@@ -130,7 +131,94 @@
   HTML forms.</p>
 <p><a href="https://github.com/teijo/form-validation-kit">Project repository at Github</a></p>
 
-<h2>Demo form</h2>
+<h2>Demos</h2>
+<h3>Sample login</h3>
+
+<p>Two step validation, first requires username and password to be input to
+  enable submit. After submit username and password equality is checked as
+  form submission validation.</p>
+<form id="loginForm" autocomplete="off" onsubmit="loginListener(event)">
+  <ul>
+    <li>
+      <p>Username</p>
+      <input id="usernameInput" type="text" onkeyup="usernameListener(event)" />
+      <label for="usernameInput"></label>
+      <ul class="queue" id="usernameVisu"></ul>
+    </li>
+    <li>
+      <p>Password</p>
+      <input id="passwordInput" type="text" onkeyup="passwordListener(event)" />
+      <label for="passwordInput"></label>
+      <ul class="queue" id="passwordVisu"></ul>
+    </li>
+    <li>
+      <p>Submit</p>
+      <input id="loginSubmit" type="submit" />
+      <label for="loginSubmit"></label>
+      <ul class="queue" id="loginVisu"></ul>
+    </li>
+    <li>
+      <p>Submission response</p>
+      <input id="loginResponse" style="width: 50%" type="text" disabled="disabled" />
+      <label for="loginResponse"></label>
+      <ul class="queue" id="submitVisu"></ul>
+    </li>
+  </ul>
+</form>
+<script class="demo">
+  function min(value, done) {
+    done(value.length > 0, "Min");
+  }
+
+  function max(value, done) {
+    done(value.length < 3, "Max");
+  }
+
+  function processForm(value, done) {
+    setTimeout(function() {
+      var equal = value.username === value.password;
+      done(equal, "Username and password are " + (!equal ? "not" : "") + " equal");
+    }, 1000);
+  }
+
+  var username = Chain.create(function(state) {
+    document.getElementById('passwordInput').disabled =
+        (state.state === Chain.Valid) ? '' : 'disabled';
+  }, min).using('');
+
+  var password = Chain.create(function(state) {}, min, max, username).using('');
+
+  var submit = Chain.create(function(state) {
+    var submitButton = document.getElementById('loginSubmit');
+    submitButton.disabled = (state.state === Chain.Valid) ? '' : 'disabled';
+  }, username, password);
+
+  var response = Chain.create(function(state) {
+    var disabled = (state.state == Chain.Validating) ? 'disabled' : '';
+    var inputs = document.getElementById('loginForm').getElementsByTagName('input');
+    Array.prototype.slice.call(inputs).forEach(function(el) {
+      el.disabled = disabled;
+    });
+    document.getElementById('loginResponse').value = state.response;
+  }, processForm);
+
+  function usernameListener(event) {
+    username.evaluate(event.target.value);
+  }
+
+  function passwordListener(event) {
+    password.evaluate(event.target.value);
+  }
+
+  function loginListener() {
+    event.preventDefault();
+    response.evaluate({
+      username: document.getElementById('usernameInput').value,
+      password: document.getElementById('passwordInput').value
+    });
+  }
+</script>
+<h3>Sample validators</h3>
 <p>Filled on reload. Modify the inputs and play around. All fields are
   combined into a single form. All inputs need to be valid in order for the
   submit to be enabled.</p>
