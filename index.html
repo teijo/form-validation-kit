@@ -129,7 +129,14 @@
 <p><a href="https://github.com/teijo/form-validation-kit">Project repository at Github</a></p>
 
 <h2>Demos</h2>
-<h3>Sample login</h3>
+
+<h3>Login</h3>
+
+<p>This form demonstrates the library's capabilities. Each input utilizes
+  different features of the library. Details after the demo.</p>
+
+<p>For demo purposes, the state and its history are visualized for each input.
+  It's not part of the library's functionality</p>
 <form id="loginForm" autocomplete="off" onsubmit="loginListener(event)">
   <ul>
     <li>
@@ -158,12 +165,38 @@
     </li>
   </ul>
 </form>
-<h4>Sample login implementation</h4>
+<h4>Form and validation description</h4>
+<dl>
+  <dt>Username</dt>
+  <dd>Requires at least 1 character as input. Validated synchronously.
+    Initialized with empty string.</dd>
+  <dt>Password</dt>
+  <dd>Input must be at least 1 character and maximum 2 characters long.
+    Validated synchronouly but delayed by a debouncing, which is indicated by
+    <span class="queued">QUEUED</span> state. Requires username to
+    be in <span class="valid">VALID</span> state. Initialized with empty string.
+  </dd>
+  <dt>Submit</dt>
+  <dd>Depends on the validation state of its parent validators, the Username
+    and Password. Button is disabled unless both are <span class="valid">VALID</span>.
+    Initializes to the calculated state of parent inputs.
+  </dd>
+  <dt>Submit response</dt>
+  <dd>Triggered from form submission. Responds asynchronously with delay,
+    indicated by <span class="validating">VALIDATING</span> state.
+    Disables form while validation is ongoing. Resolves to
+    <span class="valid">VALID</span> or <span class="invalid">INVALID</span>
+    depending on whether username and password inputs match.
+  </dd>
+</dl>
+<h4>Validation setup code</h4>
 <script class="demo">
-  function min(value) { return (value.length > 0); }
-  function max(value) { return (value.length < 3); }
+  // Helpers
   function el(id) { return document.getElementById(id); }
 
+  // Assertions
+  function min(value) { return (value.length > 0); }
+  function max(value) { return (value.length < 3); }
   function processForm(value, done) {
     setTimeout(function() {
       var equal = value.username === value.password;
@@ -171,6 +204,7 @@
     }, 1000);
   }
 
+  // Validators
   var username = Validation.create(function(state) {
     visualize(el('usernameInput'))(state);
     el('passwordInput').disabled = (state.state === Validation.Valid) ? '' : 'disabled';
@@ -180,7 +214,7 @@
     visualize(el('passwordInput'))(state);
   }, min, max, username, {throttle: 500}).using('');
 
-  var submit = Validation.create(function(state) {
+  Validation.create(function(state) {
     var element = el('loginSubmit');
     visualize(element)(state);
     element.disabled = (state.state === Validation.Valid) ? '' : 'disabled';
@@ -197,7 +231,7 @@
     element.value = state.response;
   }, processForm);
 
-  // Input and form event listeners
+  // Input and form event handlers
   function usernameListener(event) {
     username.evaluate(event.target.value);
   }
@@ -214,22 +248,13 @@
     });
   }
 </script>
-<h2>Sample validators</h2>
-<p>Validator is a function determining determining the validity of the
-  received input. Completed validation is indicated with <code>done</code> or
-  <code>error</code> callbacks. If input is deemed INVALID, given message is
-  returned to the validation requester. If unexpected problem occurs, such as
-  a timeout for AJAX call, ERROR state can be triggered with desired
-  description. Low granularity validators can be can be combined together
-  (see below).</p>
 
-<h2>Demo form setup</h2>
-<p><code>form</code> indicates a group of input <code>validator</code>s.
-  <code>form</code> receives the combined state of the inputs, e.g. if one
-  <code>validator</code> is INVALID and all others are VALID, combined result
-  for the form is INVALID. If state of one <code>validator</code> is
-  VALIDATING (result pending from asynchronous validation), state of
-  <code>form</code> is VALIDATING. Precedence from first to last is listed below:</p>
+<h2>Validation states</h2>
+
+<p>Validation can have the following states. If validator depends on other
+  validators, active state is the state with highest precedence (top to bottom
+  in list below) of all the used validators.</p>
+
 <dl>
   <dt class="error">ERROR</dt>
   <dd>Validator could not correctly determine the validity of the input</dd>
