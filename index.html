@@ -304,23 +304,5 @@
   validator.evaluate(1);
   inheritingValidator.evaluate(-1);
 </script>
-
-<script>
-  function emulateTyping(elementId, testInput, interval) {
-    var node = document.getElementById(elementId);
-    Bacon.sequentially(interval, testInput.split("")).onValue(function(char) {
-      var event = new Event("keyup");
-      event.keyCode = char.charCodeAt(0);
-      node.value = node.value + char;
-      node.dispatchEvent(event);
-    });
-  }
-  function testInput() {
-    emulateTyping('syncInput', "012012012", 300);
-    emulateTyping('textInput', "Test some long text", 150);
-    emulateTyping('numberInput', "1234ABCD", 400);
-    emulateTyping('failingInput', "timeout", 300);
-  }
-</script>
 </body>
 </html>
