@@ -160,7 +160,7 @@ Chain = (function() {
       var dependencies = Array.prototype.slice.call(arguments).slice(1);
       var options = {};
       var last = dependencies[dependencies.length - 1];
-      if (typeof(last) === 'object' && !(last instanceof Validator)) {
+      if (typeof(last) === 'object' && last.constructor == Object) {
         options = dependencies.pop();
       }
       var parents = dependencies.filter(isChain);
