@@ -120,7 +120,9 @@ Chain = (function() {
     });
     streams.push(response);
 
-    var state = Bacon.mergeAll.apply(this, streams).toProperty();
+    var state = Bacon.mergeAll.apply(this, streams).skipDuplicates(function(prev, current) {
+      return prev.state == current.state;
+    }).toProperty();
 
     this.evaluate = function(value) {
       input.push({value: value});
@@ -151,14 +153,26 @@ Chain = (function() {
   }
 
   return {
-    create: function(cb /* ...validators */) {
+    create: function(cb /* ...validators, options */) {
       if (arguments.length < 2) {
         throw new Error("register() requires a callback and at least one validator as argument");
       }
       var dependencies = Array.prototype.slice.call(arguments).slice(1);
+      var options = {};
+      var last = dependencies[dependencies.length - 1];
+      if (typeof(last) === 'object' && !(last instanceof Validator)) {
+        options = dependencies.pop();
+      }
       var parents = dependencies.filter(isChain);
       var validators = dependencies.filter(not(isChain));
-      var options = {};
+
+      validators.forEach(function(v) {
+        var arity = v.length;
+        if (arity < 1 || arity > 3) {
+          throw new Error("Synchronous validator type is Function(string), asynchronous type is Function(string, done(bool, string), error(string)), got function taking " + arity + " arguments.");
+        }
+      });
+
       var parentStates = parents.map(function(p) { return p.__state; });
       var validation = new Validator(parentStates, validators, options);
       validation.__update(cb);
