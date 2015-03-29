@@ -98,11 +98,11 @@
 <body>
 <script>
   var colors = {};
-  colors[Chain.Error] = '#C66';
-  colors[Chain.Queued] = '#CC6';
-  colors[Chain.Validating] = '#6CF';
-  colors[Chain.Valid] = '#6C6';
-  colors[Chain.Invalid] = 'pink';
+  colors[Validation.Error] = '#C66';
+  colors[Validation.Queued] = '#CC6';
+  colors[Validation.Validating] = '#6CF';
+  colors[Validation.Valid] = '#6C6';
+  colors[Validation.Invalid] = 'pink';
   var queue = {};
   var maxQueue = 10;
   function visualize(element) {
@@ -171,23 +171,23 @@
     }, 1000);
   }
 
-  var username = Chain.create(function(state) {
+  var username = Validation.create(function(state) {
     visualize(el('usernameInput'))(state);
-    el('passwordInput').disabled = (state.state === Chain.Valid) ? '' : 'disabled';
+    el('passwordInput').disabled = (state.state === Validation.Valid) ? '' : 'disabled';
   }, min).using('');
 
-  var password = Chain.create(function(state) {
+  var password = Validation.create(function(state) {
     visualize(el('passwordInput'))(state);
   }, min, max, username, {throttle: 500}).using('');
 
-  var submit = Chain.create(function(state) {
+  var submit = Validation.create(function(state) {
     var element = el('loginSubmit');
     visualize(element)(state);
-    element.disabled = (state.state === Chain.Valid) ? '' : 'disabled';
+    element.disabled = (state.state === Validation.Valid) ? '' : 'disabled';
   }, username, password);
 
-  var response = Chain.create(function(state) {
-    var disabled = (state.state == Chain.Validating) ? 'disabled' : '';
+  var response = Validation.create(function(state) {
+    var disabled = (state.state == Validation.Validating) ? 'disabled' : '';
     var inputs = el('loginForm').getElementsByTagName('input');
     Array.prototype.slice.call(inputs).forEach(function(el) {
       el.disabled = disabled;

@@ -2,7 +2,7 @@ try {
   Bacon = require('baconjs');
 } catch(e) {}
 
-Chain = (function() {
+Validation = (function() {
   var DEFAULT_THROTTLE = 0;
 
   var Result = {
@@ -187,5 +187,5 @@ Chain = (function() {
 })();
 
 try {
-  module.exports = Chain;
+  module.exports = Validation;
 } catch(e) {}
