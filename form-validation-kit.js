@@ -86,20 +86,16 @@ Validation = (function() {
     var streams = [];
 
     if (throttling > 0) {
-      streams.push(input.map(function(i) {
-        return {
-          state: Result.QUEUED,
-          response: []
-        }
+      streams.push(input.map({
+        state: Result.QUEUED,
+        response: []
       }));
     }
 
     if (hasAsyncValidators) {
-      streams.push(throttledInput.map(function(i) {
-        return {
-          state: Result.VALIDATING,
-          response: []
-        }
+      streams.push(throttledInput.map({
+        state: Result.VALIDATING,
+        response: []
       }));
     }
 
