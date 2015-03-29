@@ -64,7 +64,7 @@
       padding: 5px;
       border-style: outset;
     }
-    input[type=submit]:disabled {
+    input:disabled {
       color: #333;
       opacity: 0.3;
     }
@@ -96,7 +96,7 @@
     }
   </style>
 </head>
-<body onload="testInput()">
+<body>
 <script>
   var colors = {};
   colors[Validation.Error] = '#C66';
@@ -108,8 +108,6 @@
   var maxQueue = 10;
   function visualize(element) {
     return function(response) {
-//      element.style.backgroundColor = colors[response.state];
-//      element.style.borderColor = colors[response.state];
       element.className = response.state;
       element.nextElementSibling.textContent = '[' + response.state + '] ' + response.response ? response.response : "";
 
@@ -133,10 +131,6 @@
 
 <h2>Demos</h2>
 <h3>Sample login</h3>
-
-<p>Two step validation, first requires username and password to be input to
-  enable submit. After submit username and password equality is checked as
-  form submission validation.</p>
 <form id="loginForm" autocomplete="off" onsubmit="loginListener(event)">
   <ul>
     <li>
@@ -165,14 +159,11 @@
     </li>
   </ul>
 </form>
+<h4>Sample login implementation</h4>
 <script class="demo">
-  function min(value, done) {
-    done(value.length > 0, "Min");
-  }
-
-  function max(value, done) {
-    done(value.length < 3, "Max");
-  }
+  function min(value) { return (value.length > 0); }
+  function max(value) { return (value.length < 3); }
+  function el(id) { return document.getElementById(id); }
 
   function processForm(value, done) {
     setTimeout(function() {
@@ -182,26 +173,32 @@
   }
 
   var username = Chain.create(function(state) {
-    document.getElementById('passwordInput').disabled =
-        (state.state === Chain.Valid) ? '' : 'disabled';
+    visualize(el('usernameInput'))(state);
+    el('passwordInput').disabled = (state.state === Chain.Valid) ? '' : 'disabled';
   }, min).using('');
 
-  var password = Chain.create(function(state) {}, min, max, username).using('');
+  var password = Chain.create(function(state) {
+    visualize(el('passwordInput'))(state);
+  }, min, max, username, {throttle: 500}).using('');
 
   var submit = Chain.create(function(state) {
-    var submitButton = document.getElementById('loginSubmit');
-    submitButton.disabled = (state.state === Chain.Valid) ? '' : 'disabled';
+    var element = el('loginSubmit');
+    visualize(element)(state);
+    element.disabled = (state.state === Chain.Valid) ? '' : 'disabled';
   }, username, password);
 
   var response = Chain.create(function(state) {
     var disabled = (state.state == Chain.Validating) ? 'disabled' : '';
-    var inputs = document.getElementById('loginForm').getElementsByTagName('input');
+    var inputs = el('loginForm').getElementsByTagName('input');
     Array.prototype.slice.call(inputs).forEach(function(el) {
       el.disabled = disabled;
     });
-    document.getElementById('loginResponse').value = state.response;
+    var element = el('loginResponse');
+    visualize(element)(state);
+    element.value = state.response;
   }, processForm);
 
+  // Input and form event listeners
   function usernameListener(event) {
     username.evaluate(event.target.value);
   }
@@ -213,50 +210,11 @@
   function loginListener() {
     event.preventDefault();
     response.evaluate({
-      username: document.getElementById('usernameInput').value,
-      password: document.getElementById('passwordInput').value
+      username: el('usernameInput').value,
+      password: el('passwordInput').value
     });
   }
 </script>
-<h3>Sample validators</h3>
-<p>Filled on reload. Modify the inputs and play around. All fields are
-  combined into a single form. All inputs need to be valid in order for the
-  submit to be enabled.</p>
-<form autocomplete="off">
-  <ul>
-    <li>
-      <p>syncHandler() validator</p>
-      <input id="syncInput" type="text" onkeyup="syncHandler(event)" />
-      <label for="textInput"></label>
-      <ul class="queue" id="syncVisu"></ul>
-    </li>
-    <li>
-      <p>textHandler() validator</p>
-      <input id="textInput" type="text" onkeyup="textHandler(event)" />
-      <label for="textInput"></label>
-      <ul class="queue" id="textVisu"></ul>
-    </li>
-    <li>
-      <p>numberHandler() validator</p>
-      <input id="numberInput" type="text" onkeyup="numberHandler(event)"/>
-      <label for="numberInput"></label>
-      <ul class="queue" id="numberVisu"></ul>
-    </li>
-    <li>
-      <p>failingHandler() validator</p>
-      <input id="failingInput" type="text" onkeyup="failingHandler(event)"/>
-      <label for="failingInput"></label>
-      <ul class="queue" id="failingVisu"></ul>
-    </li>
-    <li>
-      <p>Combined validator state</p>
-      <input id="formSubmit" type="submit"/>
-      <label for="formSubmit"></label>
-      <ul class="queue" id="formVisu"></ul>
-    </li>
-  </ul>
-</form>
-
 <h2>Sample validators</h2>
 <p>Validator is a function determining determining the validity of the
   received input. Completed validation is indicated with <code>done</code> or
@@ -265,50 +223,6 @@
   a timeout for AJAX call, ERROR state can be triggered with desired
   description. Low granularity validators can be can be combined together
   (see below).</p>
-
-<script class="demo">
-  function syncReturn(value) {
-    switch (value.length % 3) {
-      case 0:
-        return;
-      case 1:
-        return "Invalid is string";
-      case 2:
-        throw new Error("Error is exception")
-    }
-  }
-
-  function duplicateValidator(text) {
-    return function(value, done) {
-      setTimeout(function() {
-        done(value !== text, 'Reserved word "' + text + '"');
-      }, 50);
-    }
-  }
-
-  function lengthValidator(minLength) {
-    return function(value, done) {
-      setTimeout(function() {
-        done(value.length >= minLength, "Minimum length is " + minLength);
-      }, 1000);
-    }
-  }
-
-  function regexpValidator(regexp) {
-    return function(value, done) {
-      done(value.match(regexp) !== null, "Not matching pattern " + regexp);
-    }
-  }
-
-  function failingValidator(value, done, error) {
-    setTimeout(function() {
-      if (value.length > 5)
-        error("Validation timed out, too long input");
-      else
-        done(true);
-    }, 50);
-  }
-</script>
 
 <h2>Demo form setup</h2>
 <p><code>form</code> indicates a group of input <code>validator</code>s.
@@ -330,35 +244,6 @@
   <dd>Validator has evaluated input as valid</dd>
 </dl>
 
-<script class="demo">
-  var form = Validation.Create(function(state) {
-    var submitButton = document.getElementById('formSubmit');
-    submitButton.disabled = (state.state === Validation.Valid) ? '' : 'disabled';
-    visualize(submitButton)(state);
-  });
-
-  // Validators build from combining earlier definitions
-  var syncValidation = form.register(syncReturn);
-  var textValidation = form.register(duplicateValidator("Test"), lengthValidator(6), {throttle: 500});
-  var numberValidation = form.register(regexpValidator(/^[0-9]*$/), {throttle: 200});
-  var timeoutValidation = form.register(failingValidator, {throttle: 1000});
-
-  function syncHandler(event) {
-    syncValidation.evaluate(event.target.value, visualize(event.target));
-  }
-
-  function textHandler(event) {
-    textValidation.evaluate(event.target.value, visualize(event.target));
-  }
-
-  function numberHandler(event) {
-    numberValidation.evaluate(event.target.value, visualize(event.target));
-  }
-
-  function failingHandler(event) {
-    timeoutValidation.evaluate(event.target.value, visualize(event.target));
-  }
-</script>
 <script>
   function emulateTyping(elementId, testInput, interval) {
     var node = document.getElementById(elementId);
