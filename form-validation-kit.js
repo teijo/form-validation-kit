@@ -85,27 +85,25 @@ Validation = (function() {
 
     var streams = [];
 
-    var requestQueued = input.map(function(i) {
-      return {
-        state: Result.QUEUED,
-        response: []
-      }
-    });
     if (throttling > 0) {
-      streams.push(requestQueued);
+      streams.push(input.map(function(i) {
+        return {
+          state: Result.QUEUED,
+          response: []
+        }
+      }));
     }
 
-    var requestSent = throttledInput.map(function(i) {
-      return {
-        state: Result.VALIDATING,
-        response: []
-      }
-    });
     if (hasAsyncValidators) {
-      streams.push(requestSent);
+      streams.push(throttledInput.map(function(i) {
+        return {
+          state: Result.VALIDATING,
+          response: []
+        }
+      }));
     }
 
-    var response = validationStream.map(function(responseList) {
+    streams.push(validationStream.map(function(responseList) {
       return responseList.reduce(function(agg, response) {
         switch (response.state) {
           case Result.VALID:
@@ -117,8 +115,7 @@ Validation = (function() {
         agg.state = (PRECEDENCE.indexOf(response.state) < PRECEDENCE.indexOf(agg.state)) ? response.state : agg.state;
         return agg;
       }, {state: Result.VALID, response: []});
-    });
-    streams.push(response);
+    }));
 
     var state = Bacon.mergeAll.apply(this, streams).skipDuplicates(function(prev, current) {
       return prev.state == current.state;
