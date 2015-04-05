@@ -68,6 +68,27 @@
       color: #333;
       opacity: 0.3;
     }
+    th {
+      text-align: center;
+      background-color: #EEE;
+    }
+    #transition-table {
+      font-size: smaller;
+      width: 50%;
+    }
+    #transition-table td {
+      text-align: center;
+    }
+    #transition-table .self {
+      background-color: #CCC;
+    }
+    #transition-table .ok {
+      background-color: #CFC;
+    }
+    #transition-table .ok:before {
+      content: '\2713';
+      font-size: larger;
+    }
     .error {
       background-color: #C66;
     }
@@ -260,7 +281,8 @@
   <dt class="error">ERROR</dt>
   <dd>Validator could not correctly determine the validity of the input</dd>
   <dt class="queued">QUEUED</dd>
-  <dd>Input received but validator invocation is waiting for throttle cooldown</dd>
+  <dd>Input received but validator invocation is waiting for throttle cooldown.
+    <span style="font-weight: bold;">State is used only if throttling is enabled.</span></dd>
   <dt class="validating">VALIDATING</dd>
   <dd>Validator invoked with latest value and waiting for response</dd>
   <dt class="invalid">INVALID</dd>
@@ -268,6 +290,115 @@
   <dt class="valid">VALID</dd>
   <dd>Validator has evaluated input as valid</dd>
 </dl>
+
+<h3>State transitions for synchronous validators</h3>
+
+<table id="transition-table">
+  <thead>
+  <tr>
+    <td></td>
+    <th colspan="5">To</th>
+  </tr>
+  <tr>
+    <th>From</th>
+    <th class="valid">VALID</th>
+    <th class="invalid">INVALID</th>
+    <th class="queued">QUEUED</th>
+    <th class="error">ERROR</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <th class="valid">VALID</th>
+    <td class="self"></td>
+    <td class="ok"></td>
+    <td class="ok"></td>
+    <td class="ok"></td>
+  </tr>
+  <tr>
+    <th class="invalid">INVALID</th>
+    <td class="ok"></td>
+    <td class="self"></td>
+    <td class="ok"></td>
+    <td class="ok"></td>
+  </tr>
+  <tr>
+    <th class="queued">QUEUED</th>
+    <td class="ok"></td>
+    <td class="ok"></td>
+    <td class="self"></td>
+    <td class="ok"></td>
+  </tr>
+  <tr>
+    <th class="error">ERROR</th>
+    <td class="ok"></td>
+    <td class="ok"></td>
+    <td class="ok"></td>
+    <td class="self"></td>
+  </tr>
+  </tbody>
+</table>
+
+<h3>State transitions for asynchronous validators</h3>
+
+<table id="transition-table">
+  <thead>
+  <tr>
+    <td></td>
+    <th colspan="5">To</th>
+  </tr>
+  <tr>
+    <th>From</th>
+    <th class="valid">VALID</th>
+    <th class="invalid">INVALID</th>
+    <th class="validating">VALIDATING</th>
+    <th class="queued">QUEUED</th>
+    <th class="error">ERROR</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <th class="valid">VALID</th>
+    <td class="self"></td>
+    <td></td>
+    <td class="ok"></td>
+    <td class="ok"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <th class="invalid">INVALID</th>
+    <td></td>
+    <td class="self"></td>
+    <td class="ok"></td>
+    <td class="ok"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <th class="validating">VALIDATING</th>
+    <td class="ok"></td>
+    <td class="ok"></td>
+    <td class="self"></td>
+    <td class="ok"></td>
+    <td class="ok"></td>
+  </tr>
+  <tr>
+    <th class="queued">QUEUED</th>
+    <td></td>
+    <td></td>
+    <td class="ok"></td>
+    <td class="self"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <th class="error">ERROR</th>
+    <td></td>
+    <td></td>
+    <td class="ok"></td>
+    <td class="ok"></td>
+    <td class="self"></td>
+  </tr>
+  </tbody>
+</table>
 
 <h2>API</h2>
 
