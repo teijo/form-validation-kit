@@ -70,17 +70,25 @@ Validation = (function() {
     }
   }
 
-  function Validator(parentStates, validators, options) {
+  function Validator(dependencies, options) {
+    var validators = dependencies.filter(not(isChain));
+    validators.forEach(function(v) {
+      var arity = v.length;
+      if (arity < 1 || arity > 3) {
+        throw new Error("Synchronous validator type is Function(string), asynchronous type is Function(string, done(bool, string), error(string)), got function taking " + arity + " arguments.");
+      }
+    });
+
     var input = new Bacon.Bus();
     var initialInput = new Bacon.Bus();
     var throttling = typeof(options.throttle) === 'number' ? options.throttle : DEFAULT_THROTTLE;
     var throttledInput = input.debounce(throttling);
 
     var hasAsyncValidators = validators.reduce(function(acc, v) { return acc || v.length > 1; }, false);
-    var validationStream = validators.length == 0 ? Bacon.combineAsArray(parentStates) : throttledInput.merge(initialInput).flatMapLatest(function(event) {
-      var responses = validators.map(validatorResponse(event));
-      var ts = parentStates.concat(responses);
-      return Bacon.combineAsArray(ts);
+    var validationStream = validators.length == 0 ? Bacon.combineAsArray(dependencies.map(function(d) { return d.__state; })) : throttledInput.merge(initialInput).flatMapLatest(function(event) {
+      return Bacon.combineAsArray(dependencies.map(function(d) {
+        return isChain(d) ? d.__state : validatorResponse(event)(d);
+      }))
     });
 
     var streams = [];
@@ -150,24 +158,17 @@ Validation = (function() {
       if (arguments.length < 2) {
         throw new Error("register() requires a callback and at least one validator as argument");
       }
+      if (typeof(cb) !== 'function') {
+        throw new Error("First argument of create() must be a callback function, got " + typeof(cb));
+      }
       var dependencies = Array.prototype.slice.call(arguments).slice(1);
       var options = {};
       var last = dependencies[dependencies.length - 1];
       if (typeof(last) === 'object' && last.constructor == Object) {
         options = dependencies.pop();
       }
-      var parents = dependencies.filter(isChain);
-      var validators = dependencies.filter(not(isChain));
 
-      validators.forEach(function(v) {
-        var arity = v.length;
-        if (arity < 1 || arity > 3) {
-          throw new Error("Synchronous validator type is Function(string), asynchronous type is Function(string, done(bool, string), error(string)), got function taking " + arity + " arguments.");
-        }
-      });
-
-      var parentStates = parents.map(function(p) { return p.__state; });
-      var validation = new Validator(parentStates, validators, options);
+      var validation = new Validator(dependencies, options);
       validation.__update(cb);
       return validation;
     },

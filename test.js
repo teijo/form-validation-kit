@@ -37,6 +37,17 @@ function alwaysValid(_, done, error) {
   }, 0);
 }
 
+function aInvalidWith(result) {
+  return function(value, done, error) {
+    done(false, result);
+  }
+}
+function aValidWith(result) {
+  return function(value, done, error) {
+    done(true, result);
+  }
+}
+
 function expectError(value, done, error) {
   setTimeout(function() {
     error("Problem")
@@ -96,6 +107,12 @@ function evaluate(value) {
     validator.evaluate(value || "");
     return validator;
   }
+}
+
+function evaluateFor(validator, value) {
+  return seq(
+      function() { return validator; },
+      evaluate(value));
 }
 
 function log(msg) {
@@ -307,12 +324,14 @@ describe('Parent validator', function() {
     var child = V.create(pushState(childStates), parent);
     var child2 = V.create(pushState(child2States), parent);
 
-    seq(function() { return parent; },
-        evaluate(),
+    seq(evaluateFor(parent),
         poll(eq(parentStates, [
           V.Validating, V.Valid
         ])),
         function() { return child; },
+        poll(eq(childStates, [
+          V.Validating, V.Valid
+        ])),
         poll(eq(childStates, [
           V.Validating, V.Valid
         ])),
@@ -322,6 +341,47 @@ describe('Parent validator', function() {
         ])),
         call(done))();
   });
+
+  describe('validator order', function() {
+    var parentStates, response, parent;
+    var stateToResponse = function(state) { response = state; };
+
+    beforeEach(function() {
+      parentStates = [];
+      response = null;
+      parent = V.create(pushState(parentStates), aValidWith('return1'));
+    });
+
+    it('responses are in validator order', function(done) {
+      var child = V.create(stateToResponse, parent, aInvalidWith('return2'));
+
+      seq(evaluateFor(parent),
+          evaluateFor(child),
+          poll(function() {
+            return response != null &&
+                response.state == 'invalid' &&
+                response.response.length == 2 &&
+                response.response[0] == 'return1' &&
+                response.response[1] == 'return2';
+          }),
+          call(done))();
+    });
+
+    it('responses are in validator order2', function(done) {
+      var child = V.create(stateToResponse, aInvalidWith('return2'), parent);
+
+      seq(evaluateFor(parent),
+          evaluateFor(child),
+          poll(function() {
+            return response != null &&
+                response.state == 'invalid' &&
+                response.response.length == 2 &&
+                response.response[0] == 'return2' &&
+                response.response[1] == 'return1'
+          }),
+          call(done))();
+    });
+  })
 });
 
 describe('Registration', function() {
