@@ -262,7 +262,7 @@
     password.evaluate(event.target.value);
   }
 
-  function loginListener() {
+  function loginListener(event) {
     event.preventDefault();
     response.evaluate({
       username: el('usernameInput').value,
