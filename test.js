@@ -298,6 +298,26 @@ describe('Input for synchronous validator', function() {
   })
 });
 
+describe('Parent validator', function() {
+  it('gets queued with throttling', function(done) {
+    var parentStates = [];
+    var childStates = [];
+    var parent = V.create(pushState(parentStates), alwaysValid);
+    var child = V.create(pushState(childStates), parent);
+
+    seq(function() { return parent; },
+        evaluate(),
+        poll(eq(parentStates, [
+          V.Validating, V.Valid
+        ])),
+        function() { return child; },
+        poll(eq(childStates, [
+          V.Validating, V.Valid
+        ])),
+        call(done))();
+  });
+});
+
 describe('Registration', function() {
   function arityError(arity) {
     return new RegExp("Synchronous validator type is Function\\(string\\), asynchronous type is Function\\(string, done\\(bool, string\\), error\\(string\\)\\), got function taking " + arity + " arguments.", "g");
