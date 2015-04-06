@@ -299,11 +299,13 @@ describe('Input for synchronous validator', function() {
 });
 
 describe('Parent validator', function() {
-  it('gets queued with throttling', function(done) {
+  it('events get inherited', function(done) {
     var parentStates = [];
     var childStates = [];
+    var child2States = [];
     var parent = V.create(pushState(parentStates), alwaysValid);
     var child = V.create(pushState(childStates), parent);
+    var child2 = V.create(pushState(child2States), parent);
 
     seq(function() { return parent; },
         evaluate(),
@@ -312,6 +314,10 @@ describe('Parent validator', function() {
         ])),
         function() { return child; },
         poll(eq(childStates, [
+          V.Validating, V.Valid
+        ])),
+        function() { return child2; },
+        poll(eq(child2States, [
           V.Validating, V.Valid
         ])),
         call(done))();
