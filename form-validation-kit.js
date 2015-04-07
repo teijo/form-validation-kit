@@ -139,7 +139,7 @@ Validation = (function() {
       return prev.state == current.state;
     }).toProperty();
 
-    state.onValue(stateCb);
+    state.onValue(function(state) { stateCb(state.state, state.response) });
 
     this.evaluate = function(value) {
       input.push({value: value});

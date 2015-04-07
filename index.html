@@ -133,15 +133,15 @@
   var queue = {};
   var maxQueue = 10;
   function visualize(element) {
-    return function(response) {
-      element.className = response.state;
-      element.nextElementSibling.textContent = '[' + response.state + '] ' + response.response ? response.response : "";
+    return function(state, response) {
+      element.className = state;
+      element.nextElementSibling.textContent = '[' + state + '] ' + response ? response : "";
 
       var id = element.nextElementSibling.nextElementSibling.id;
       if (queue[id] === undefined) {
         queue[id] = [];
       }
-      queue[id].unshift(response.state);
+      queue[id].unshift(state);
       queue[id] = queue[id].slice(0, maxQueue);
 
       element.nextElementSibling.nextElementSibling.innerHTML = queue[id].map(function(state) {
@@ -177,7 +177,7 @@
 <script class="demo">
   var input = Validation.create(             // A validation
       function(state) {                      // State callback gets invoked when validation state changes
-        var color = (state.state == Validation.Invalid) ? 'pink' : 'white';
+        var color = (state == Validation.Invalid) ? 'pink' : 'white';
         document.getElementById('testInput').style.backgroundColor = color;
       },
       function(value) {                      // Validator callback
@@ -259,30 +259,30 @@
   }
 
   // Validators
-  var username = Validation.create(function(state) {
-    visualize(el('usernameInput'))(state);
-    el('passwordInput').disabled = (state.state === Validation.Valid) ? '' : 'disabled';
+  var username = Validation.create(function(state, response) {
+    visualize(el('usernameInput'))(state, response);
+    el('passwordInput').disabled = (state === Validation.Valid) ? '' : 'disabled';
   }, min).using('');
 
-  var password = Validation.create(function(state) {
-    visualize(el('passwordInput'))(state);
+  var password = Validation.create(function(state, response) {
+    visualize(el('passwordInput'))(state, response);
   }, min, max, username, {throttle: 500}).using('');
 
-  Validation.create(function(state) {
+  Validation.create(function(state, response) {
     var element = el('loginSubmit');
-    visualize(element)(state);
-    element.disabled = (state.state === Validation.Valid) ? '' : 'disabled';
+    visualize(element)(state, response);
+    element.disabled = (state === Validation.Valid) ? '' : 'disabled';
   }, username, password);
 
-  var response = Validation.create(function(state) {
-    var disabled = (state.state == Validation.Validating) ? 'disabled' : '';
+  var response = Validation.create(function(state, response) {
+    var disabled = (state == Validation.Validating) ? 'disabled' : '';
     var inputs = el('loginForm').getElementsByTagName('input');
     Array.prototype.slice.call(inputs).forEach(function(el) {
       el.disabled = disabled;
     });
     var element = el('loginResponse');
-    visualize(element)(state);
-    element.value = state.response;
+    visualize(element)(state, response);
+    element.value = response;
   }, processForm);
 
   // Input and form event handlers
@@ -457,13 +457,13 @@
   };
 
   var validator = Validation.create(
-      function(state) { /*state changes*/},
+      function(state, response) { /*state changes*/},
       syncAssertion,
       /*, ...validators and assertions*/
       {throttle: 100/*last parameter can contain options*/});
 
   var inheritingValidator = Validation.create(
-      function(state) {/*state changes*/},
+      function(state, response) {/*state changes*/},
       validator,
       asyncAssertion);
 

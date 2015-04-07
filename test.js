@@ -170,13 +170,13 @@ function poll(/*...checkCbs*/) {
 
 function pushState(array) {
   return function(state) {
-    array.push(state.state);
+    array.push(state);
   }
 }
 
 function pushResponse(array) {
-  return function(state) {
-    array.push(state.response);
+  return function(response) {
+    array.push(response);
   }
 }
 
@@ -186,8 +186,8 @@ describe('Input for asynchronous validator', function() {
   it('triggers Valid state', function(done) {
     var createStates = [V.Queued, V.Validating, V.Valid];
     var form = V.create(function(state) {
-      assert.equal(state.state, createStates.shift(1));
-      if (state.state === V.Valid) {
+      assert.equal(state, createStates.shift(1));
+      if (state === V.Valid) {
         done();
       }
     }, expectOk, {throttle: 10});
@@ -270,9 +270,9 @@ describe('Input for asynchronous validator', function() {
   it('can return an object to state callback', function(done) {
     var combinedStates = [];
     var responses = [];
-    var form = V.create(function(state) {
+    var form = V.create(function(state, response) {
       pushState(combinedStates)(state);
-      pushResponse(responses)(state) ;
+      pushResponse(responses)(response) ;
     }, validResponse({foo: "bar"}));
 
     seq(function() { return form; },
@@ -343,8 +343,8 @@ describe('Parent validator', function() {
   });
 
   describe('validator order', function() {
-    var parentStates, response, parent;
-    var stateToResponse = function(state) { response = state; };
+    var parentStates, state, response, parent;
+    var stateToResponse = function(s, r) { state = s; response = r; };
 
     beforeEach(function() {
       parentStates = [];
@@ -359,10 +359,10 @@ describe('Parent validator', function() {
           evaluateFor(child),
           poll(function() {
             return response != null &&
-                response.state == 'invalid' &&
-                response.response.length == 2 &&
-                response.response[0] == 'return1' &&
-                response.response[1] == 'return2';
+                state == 'invalid' &&
+                response.length == 2 &&
+                response[0] == 'return1' &&
+                response[1] == 'return2';
           }),
           call(done))();
     });
@@ -374,10 +374,10 @@ describe('Parent validator', function() {
           evaluateFor(child),
           poll(function() {
             return response != null &&
-                response.state == 'invalid' &&
-                response.response.length == 2 &&
-                response.response[0] == 'return2' &&
-                response.response[1] == 'return1'
+                state == 'invalid' &&
+                response.length == 2 &&
+                response[0] == 'return2' &&
+                response[1] == 'return1'
           }),
           call(done))();
     });
@@ -406,8 +406,8 @@ describe('Error', function() {
   it('triggers Error state', function(done) {
     var createStates = [V.Queued, V.Validating, V.Error];
     var form = V.create(function(state) {
-      assert.equal(state.state, createStates.shift(1));
-      if (state.state === V.Error) {
+      assert.equal(state, createStates.shift(1));
+      if (state === V.Error) {
         done();
       }
     }, expectError, {throttle: 10});
@@ -415,7 +415,7 @@ describe('Error', function() {
     var evalStates = [V.Queued, V.Validating, V.Error];
     seq(function() { return form; },
         evaluate(function(state) {
-          assert.equal(state.state, evalStates.shift(1));
+          assert.equal(state, evalStates.shift(1));
         }))();
   });
 });
