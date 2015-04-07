@@ -166,9 +166,7 @@ Validation = (function() {
       if (typeof(last) === 'object' && last.constructor == Object) {
         options = dependencies.pop();
       }
-
-      var validation = new Validator(stateCb, dependencies, options);
-      return validation;
+      return new Validator(stateCb, dependencies, options);
     },
     Error: Result.ERROR,
     Queued: Result.QUEUED,
