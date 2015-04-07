@@ -19,6 +19,16 @@ Validation = (function() {
   };
   var PRECEDENCE = [Result.ERROR, Result.QUEUED, Result.VALIDATING, Result.INVALID, Result.VALID];
 
+  function isValidator(v) {
+    return (v instanceof Validator);
+  }
+
+  function not(fn) {
+    return function(val) {
+      return !fn(val)
+    }
+  }
+
   function validatorResponse(event) {
     return function(validator) {
       return Bacon.fromCallback(function(done) {
@@ -140,16 +150,6 @@ Validation = (function() {
       return this;
     }.bind(this);
     this.__state = state; // Used by children
-  }
-
-  function isValidator(v) {
-    return (v instanceof Validator);
-  }
-
-  function not(fn) {
-    return function(val) {
-      return !fn(val)
-    }
   }
 
   return {
