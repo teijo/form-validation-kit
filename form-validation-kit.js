@@ -70,7 +70,7 @@ Validation = (function() {
     }
   }
 
-  function Validator(dependencies, options) {
+  function Validator(stateCb, dependencies, options) {
     var validators = dependencies.filter(not(isChain));
     validators.forEach(function(v) {
       var arity = v.length;
@@ -125,11 +125,10 @@ Validation = (function() {
       return prev.state == current.state;
     }).toProperty();
 
+    state.onValue(stateCb);
+
     this.evaluate = function(value) {
       input.push({value: value});
-    };
-    this.__update = function(cb) {
-      state.onValue(cb);
     };
     var initialized = false;
     this.using = function(value) {
@@ -154,12 +153,12 @@ Validation = (function() {
   }
 
   return {
-    create: function(cb /* ...validators, options */) {
+    create: function(stateCb /* ...validators, options */) {
       if (arguments.length < 2) {
         throw new Error("register() requires a callback and at least one validator as argument");
       }
-      if (typeof(cb) !== 'function') {
-        throw new Error("First argument of create() must be a callback function, got " + typeof(cb));
+      if (typeof(stateCb) !== 'function') {
+        throw new Error("First argument of create() must be a callback function, got " + typeof(stateCb));
       }
       var dependencies = Array.prototype.slice.call(arguments).slice(1);
       var options = {};
@@ -168,8 +167,7 @@ Validation = (function() {
         options = dependencies.pop();
       }
 
-      var validation = new Validator(dependencies, options);
-      validation.__update(cb);
+      var validation = new Validator(stateCb, dependencies, options);
       return validation;
     },
     Error: Result.ERROR,
