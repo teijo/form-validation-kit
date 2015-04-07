@@ -29,6 +29,10 @@ Validation = (function() {
     }
   }
 
+  function getState(validator) {
+    return validator.__state;
+  }
+
   function validatorResponse(event) {
     return function(validator) {
       return Bacon.fromCallback(function(done) {
@@ -95,9 +99,9 @@ Validation = (function() {
     var throttledInput = input.debounce(throttling);
 
     var hasAsyncValidators = validators.reduce(function(acc, v) { return acc || v.length > 1; }, false);
-    var validationStream = validators.length == 0 ? Bacon.combineAsArray(dependencies.map(function(d) { return d.__state; })) : throttledInput.merge(initialInput).flatMapLatest(function(event) {
+    var validationStream = validators.length == 0 ? Bacon.combineAsArray(dependencies.map(getState)) : throttledInput.merge(initialInput).flatMapLatest(function(event) {
       return Bacon.combineAsArray(dependencies.map(function(d) {
-        return isValidator(d) ? d.__state : validatorResponse(event)(d);
+        return isValidator(d) ? getState(d) : validatorResponse(event)(d);
       }))
     });
 
