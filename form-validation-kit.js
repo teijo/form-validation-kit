@@ -71,7 +71,7 @@ Validation = (function() {
   }
 
   function Validator(stateCb, dependencies, options) {
-    var validators = dependencies.filter(not(isChain));
+    var validators = dependencies.filter(not(isValidator));
     validators.forEach(function(v) {
       var arity = v.length;
       if (arity < 1 || arity > 3) {
@@ -87,7 +87,7 @@ Validation = (function() {
     var hasAsyncValidators = validators.reduce(function(acc, v) { return acc || v.length > 1; }, false);
     var validationStream = validators.length == 0 ? Bacon.combineAsArray(dependencies.map(function(d) { return d.__state; })) : throttledInput.merge(initialInput).flatMapLatest(function(event) {
       return Bacon.combineAsArray(dependencies.map(function(d) {
-        return isChain(d) ? d.__state : validatorResponse(event)(d);
+        return isValidator(d) ? d.__state : validatorResponse(event)(d);
       }))
     });
 
@@ -142,7 +142,7 @@ Validation = (function() {
     this.__state = state; // Used by children
   }
 
-  function isChain(v) {
+  function isValidator(v) {
     return (v instanceof Validator);
   }
 
