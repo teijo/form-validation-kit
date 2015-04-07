@@ -157,6 +157,38 @@
 
 <h2>Demos</h2>
 
+<h3>Minimal</h3>
+
+<p>Single input with a single syncronous validator asserting that input length
+  is an even number.</p>
+
+<form autocomplete="off">
+  <ul>
+    <li>
+      <p>Input</p>
+      <div class="description">One validator, checking input length.</div>
+      <input id="testInput" type="text" onkeyup="inputListener(event)" />
+    </li>
+  </ul>
+</form>
+
+<h4>Minimal demo code</h4>
+
+<script class="demo">
+  var input = Validation.create(             // A validation
+      function(state) {                      // State callback gets invoked when validation state changes
+        var color = (state.state == Validation.Invalid) ? 'pink' : 'white';
+        document.getElementById('testInput').style.backgroundColor = color;
+      },
+      function(value) {                      // Validator callback
+        return (value.length % 2 == 0);
+      }).using('');                          // Value to evaluate initial state with. Same as calling .evaluate('').
+
+  function inputListener(event) {            // Input event handler <input onkeyup="inputListener(event)">
+    input.evaluate(event.target.value);      // Change to <input> is sent for validators
+  }
+</script>
+
 <h3>Login</h3>
 
 <p>This form demonstrates the library's capabilities. Each input utilizes
@@ -211,7 +243,7 @@
   </ul>
 </form>
 
-<h4>Validation setup code</h4>
+<h4>Login demo code</h4>
 <script class="demo">
   // Helpers
   function el(id) { return document.getElementById(id); }
