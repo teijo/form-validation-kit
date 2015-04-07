@@ -284,7 +284,9 @@
   <dd>Input received but validator invocation is waiting for throttle cooldown.
     <span style="font-weight: bold;">State is used only if throttling is enabled.</span></dd>
   <dt class="validating">VALIDATING</dd>
-  <dd>Validator invoked with latest value and waiting for response</dd>
+  <dd>Validator invoked with latest value from <code>evaluate()</code>.
+    Waiting validator to call <code>done()</code> or <code>error()</code>.
+    <span style="font-weight: bold;">State is used only with asynchronous validators.</span></dd>
   <dt class="invalid">INVALID</dd>
   <dd>Validator has evaluated input as invalid</dd>
   <dt class="valid">VALID</dd>
