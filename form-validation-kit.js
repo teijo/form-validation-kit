@@ -84,6 +84,17 @@ Validation = (function() {
     }
   }
 
+  function validateEvent(dependencies) {
+    return function(event) {
+      return Bacon.combineTemplate({
+        eventId: event.eventId,
+        responseList: Bacon.combineAsArray(dependencies.map(function(dep) {
+          return isValidator(dep) ? getState(dep) : validatorResponse(event)(dep);
+        }))
+      });
+    }
+  }
+
   function Validator(stateCb, dependencies, options) {
     var currentEventId = 0;
     var validators = dependencies.filter(not(isValidator));
@@ -98,16 +109,13 @@ Validation = (function() {
     var initialInput = new Bacon.Bus();
     var throttling = typeof(options.throttle) === 'number' ? options.throttle : DEFAULT_THROTTLE;
     var throttledInput = input.debounce(throttling);
-
     var hasAsyncValidators = validators.reduce(function(acc, v) { return acc || v.length > 1; }, false);
-    var validationStream = validators.length == 0 ? Bacon.combineAsArray(dependencies.map(getState)) : throttledInput.merge(initialInput).flatMapLatest(function(event) {
-      return Bacon.combineTemplate({
-        eventId: event.eventId,
-        responseList: Bacon.combineAsArray(dependencies.map(function(d) {
-          return isValidator(d) ? getState(d) : validatorResponse(event)(d);
-        }))
-      });
-    }).filter(function(result) { return result.eventId === currentEventId; }).map(function(result) { return result.responseList; });
+    var validationStream = (validators.length == 0)
+        ? Bacon.combineAsArray(dependencies.map(getState))
+        : throttledInput.merge(initialInput)
+            .flatMapLatest(validateEvent(dependencies))
+            .filter(function(result) { return result.eventId === currentEventId; })
+            .map('.responseList');
 
     var streams = [];
 
