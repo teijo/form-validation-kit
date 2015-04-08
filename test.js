@@ -250,7 +250,7 @@ describe('Input for asynchronous validator', function() {
         call(done))();
   });
 
-  it('same throttle and validation delay', function(done) {
+  it('late responses get discarded', function(done) {
     var combinedStates = [];
     var form = V.create(pushState(combinedStates), validWithDelay(100), {throttle: 100});
 
@@ -258,9 +258,7 @@ describe('Input for asynchronous validator', function() {
         evaluate('a'),
         sleep(150),
         evaluate('b'),
-        log(combinedStates),
         sleep(300),
-        log(combinedStates),
         poll(eq(combinedStates, [
           V.Queued, V.Validating, V.Queued, V.Validating, V.Valid
         ])),

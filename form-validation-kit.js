@@ -85,6 +85,7 @@ Validation = (function() {
   }
 
   function Validator(stateCb, dependencies, options) {
+    var currentEventId = 0;
     var validators = dependencies.filter(not(isValidator));
     validators.forEach(function(v) {
       var arity = v.length;
@@ -100,10 +101,13 @@ Validation = (function() {
 
     var hasAsyncValidators = validators.reduce(function(acc, v) { return acc || v.length > 1; }, false);
     var validationStream = validators.length == 0 ? Bacon.combineAsArray(dependencies.map(getState)) : throttledInput.merge(initialInput).flatMapLatest(function(event) {
-      return Bacon.combineAsArray(dependencies.map(function(d) {
-        return isValidator(d) ? getState(d) : validatorResponse(event)(d);
-      }))
-    });
+      return Bacon.combineTemplate({
+        eventId: event.eventId,
+        responseList: Bacon.combineAsArray(dependencies.map(function(d) {
+          return isValidator(d) ? getState(d) : validatorResponse(event)(d);
+        }))
+      });
+    }).filter(function(result) { return result.eventId === currentEventId; }).map(function(result) { return result.responseList; });
 
     var streams = [];
 
@@ -141,15 +145,20 @@ Validation = (function() {
 
     state.onValue(function(state) { stateCb(state.state, state.response) });
 
+    function mkEvent(value) {
+      currentEventId++;
+      return {value: value, eventId: currentEventId};
+    }
+
     this.evaluate = function(value) {
-      input.push({value: value});
+      input.push(mkEvent(value));
     };
     var initialized = false;
     this.using = function(value) {
       if (initialized) {
         throw new Error('Can initialize only once');
       }
-      initialInput.push({value: value});
+      initialInput.push(mkEvent(value));
       initialized = true;
       return this;
     }.bind(this);
