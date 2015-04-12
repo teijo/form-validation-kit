@@ -489,5 +489,13 @@ describe('Validator', function() {
           poll(eq(responses, [[], ["error msg"]])),
           call(done))();
     });
+
+    it('resolves to ERROR and response object when throwing exception', function(done) {
+      var validator = V.create(function(s, d) { states.push(s); responses.push(d); }, function(_, resolve, reject) { throw new Error("exception msg"); });
+      seq(evaluateFor(validator),
+          poll(eq(states, [V.Validating, V.Error])),
+          poll(eq(responses, [[], ["exception msg"]])),
+          call(done))();
+    });
   });
 });
