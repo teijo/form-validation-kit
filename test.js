@@ -417,3 +417,77 @@ describe('Error', function() {
         }))();
   });
 });
+
+describe('Validator', function() {
+  describe('with synchronized assertion', function() {
+    var states, responses;
+
+    beforeEach(function() {
+      states = [];
+      responses = [];
+    });
+
+    it('resolves to VALID when returning true', function(done) {
+      var validator = V.create(pushState(states), function(_) { return true; });
+      seq(evaluateFor(validator),
+          poll(eq(states, [V.Valid])),
+          call(done))();
+    });
+
+    it('resolves to INVALID when returning false', function(done) {
+      var validator = V.create(pushState(states), function(_) { return false; });
+      seq(evaluateFor(validator),
+          poll(eq(states, [V.Invalid])),
+          call(done))();
+    });
+
+    it('resolves to INVALID and response object when returning string', function(done) {
+      var validator = V.create(function(s, d) { states.push(s); responses.push(d); }, function(_) { return "error msg"; });
+      seq(evaluateFor(validator),
+          poll(eq(states, [V.Invalid])),
+          poll(eq(responses, [["error msg"]])),
+          call(done))();
+    });
+
+    it('resolves to ERROR and response object when throwing', function(done) {
+      var validator = V.create(function(s, d) { states.push(s); responses.push(d); }, function(_) { throw new Error("exception msg"); });
+      seq(evaluateFor(validator),
+          poll(eq(states, [V.Error])),
+          poll(eq(responses, [["exception msg"]])),
+          call(done))();
+    });
+  });
+
+  describe('with asynchronized assertion', function() {
+    var states, responses;
+
+    beforeEach(function() {
+      states = [];
+      responses = [];
+    });
+
+    it('resolves to VALID and response object with true', function(done) {
+      var validator = V.create(function(s, d) { states.push(s); responses.push(d); }, function(_, resolve) { resolve(true, "ok"); });
+      seq(evaluateFor(validator),
+          poll(eq(states, [V.Validating, V.Valid])),
+          poll(eq(responses, [[], ["ok"]])),
+          call(done))();
+    });
+
+    it('resolves to INVALID and response object with false', function(done) {
+      var validator = V.create(function(s, d) { states.push(s); responses.push(d); }, function(_, resolve) { resolve(false, "nok"); });
+      seq(evaluateFor(validator),
+          poll(eq(states, [V.Validating, V.Invalid])),
+          poll(eq(responses, [[], ["nok"]])),
+          call(done))();
+    });
+
+    it('resolves to ERROR and response object when calling error', function(done) {
+      var validator = V.create(function(s, d) { states.push(s); responses.push(d); }, function(_, resolve, reject) { reject("error msg"); });
+      seq(evaluateFor(validator),
+          poll(eq(states, [V.Validating, V.Error])),
+          poll(eq(responses, [[], ["error msg"]])),
+          call(done))();
+    });
+  });
+});
