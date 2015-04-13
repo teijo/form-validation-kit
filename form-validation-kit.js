@@ -62,23 +62,29 @@ Validation = (function() {
             response: response
           });
         } else { // Asynchronous validator
-          validator(
-              event.value,
-              // Validation done
-              function(isValid, response) {
-                done({
-                  state: isValid ? Result.VALID : Result.INVALID,
-                  response: response
+          try {
+            validator(
+                event.value,
+                // Validation done
+                function(isValid, response) {
+                  done({
+                    state: isValid ? Result.VALID : Result.INVALID,
+                    response: response
+                  });
+                },
+                // Validation error
+                function(response) {
+                  done({
+                    state: Result.ERROR,
+                    response: response
+                  });
                 });
-              },
-              // Validation error
-              function(response) {
-                done({
-                  state: Result.ERROR,
-                  response: response
-                })
-              }
-          );
+          } catch (e) {
+            done({
+              state: Result.ERROR,
+              response: e.message
+            });
+          }
         }
       }).toProperty();
     }
