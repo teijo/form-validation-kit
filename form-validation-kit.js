@@ -35,7 +35,7 @@ Validation = (function() {
 
   function validatorResponse(event) {
     return function(validator) {
-      return Bacon.fromCallback(function(done) {
+      return Bacon.fromCallback(function(resolve) {
         if (validator.length == 1) { // Synchronous validator
           var state = null;
           var response = null;
@@ -57,7 +57,7 @@ Validation = (function() {
             state = Result.ERROR;
             response = e.message;
           }
-          done({
+          resolve({
             state: state,
             response: response
           });
@@ -67,20 +67,20 @@ Validation = (function() {
                 event.value,
                 // Validation done
                 function(isValid, response) {
-                  done({
+                  resolve({
                     state: isValid ? Result.VALID : Result.INVALID,
                     response: response
                   });
                 },
                 // Validation error
                 function(response) {
-                  done({
+                  resolve({
                     state: Result.ERROR,
                     response: response
                   });
                 });
           } catch (e) {
-            done({
+            resolve({
               state: Result.ERROR,
               response: e.message
             });
