@@ -10,6 +10,9 @@
     "mocha": "~2.1.0",
     "watch": "~0.14.0"
   },
+  "dependencies": {
+    "baconjs": "~0.7.49"
+  },
   "scripts": {
     "start": "watch mocha . & livereloadx .",
     "test": "mocha"
