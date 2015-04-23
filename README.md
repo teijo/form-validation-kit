@@ -1,6 +1,8 @@
 form-validation-kit
 ===================
 
+![Build status](https://codeship.com/projects/0925a1e0-2b10-0132-7a5d-06c98ad2d9ca/status?branch=gh-pages)
+
 [See demos on project's Github Pages](https://teijo.github.io/form-validation-kit/)
 
 Project for reactive JavaScript form validation library.
