@@ -1,15 +1,11 @@
-form-validation-kit
-===================
+# form-validation-kit
 
-![Build status](https://codeship.com/projects/0925a1e0-2b10-0132-7a5d-06c98ad2d9ca/status?branch=gh-pages)
+A small reactive JavaScript form validation library.
 
-[See demos on project's Github Pages](https://teijo.github.io/form-validation-kit/)
-
-Project for reactive JavaScript form validation library.
+See demos and usage on [project's Github Pages](https://teijo.github.io/form-validation-kit/).
 
 
-Installation
-------------
+## Installation
 
 You can install latest published package using npm and bower.
 
@@ -17,8 +13,9 @@ You can install latest published package using npm and bower.
  - `npm install form-validation-kit`
 
 
-Development
------------
+## Development
+
+![Build status](https://codeship.com/projects/0925a1e0-2b10-0132-7a5d-06c98ad2d9ca/status?branch=gh-pages)
 
 Install dependencies for testing:
 
