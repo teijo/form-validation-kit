@@ -1,11 +1,10 @@
 {
   "name": "form-validation-kit",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "authors": [
     "Teijo Laine"
   ],
   "license": "MIT",
-  "private": true,
   "ignore": [
     "**/.*",
     "node_modules",
@@ -15,5 +14,18 @@
   ],
   "dependencies": {
     "bacon": "~0.7.49"
-  }
+  },
+  "main": "form-validation-kit.js",
+  "homepage": "https://github.com/teijo/form-validation-kit",
+  "description": "Synchronous and asynchronous validators that can be chained in hierarchy",
+  "moduleType": [
+    "amd"
+  ],
+  "keywords": [
+    "form",
+    "validation",
+    "chained",
+    "reactive",
+    "functional"
+  ]
 }
