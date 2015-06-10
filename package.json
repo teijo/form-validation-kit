@@ -1,8 +1,8 @@
 {
   "name": "form-validation-kit",
-  "version": "0.1.0",
-  "description": "",
-  "main": "index.js",
+  "version": "0.1.1",
+  "description": "Reactive validation library supporting sync, async and dependent validators",
+  "main": "form-validation-kit.js",
   "devDependencies": {
     "bluebird": "^2.9.12",
     "livereloadx": "~0.3.7",
