@@ -398,6 +398,12 @@ describe('Registration', function() {
       V.create(nop, function(a, b, c, d) {});
     }, arityError(4));
   });
+
+  it('throws exception with zero validators', function() {
+    assert.throws(function() {
+      V.create(nop);
+    }, new RegExp("create\\(\\) requires a callback and at least one validator as argument"));
+  });
 });
 
 describe('Error', function() {

@@ -182,7 +182,7 @@ Validation = (function() {
   return {
     create: function(stateCb /* ...validators, options */) {
       if (arguments.length < 2) {
-        throw new Error("register() requires a callback and at least one validator as argument");
+        throw new Error("create() requires a callback and at least one validator as argument");
       }
       if (typeof(stateCb) !== 'function') {
         throw new Error("First argument of create() must be a callback function, got " + typeof(stateCb));
