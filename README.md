@@ -7,11 +7,20 @@ form-validation-kit
 
 Project for reactive JavaScript form validation library.
 
-Under development as of 22.2.2015.
+
+Installation
+------------
+
+You can install latest published package using npm and bower.
+
+ - `bower install form-validation-kit`
+ - `npm install form-validation-kit`
 
 
 Development
 -----------
+
+Install dependencies for testing:
 
 ```
 bower install
