@@ -15,6 +15,8 @@ You can install latest published package using npm and bower.
 
 See demos and usage on [project's Github Pages](https://teijo.github.io/form-validation-kit/).
 
+### Synchronous
+
 In example below, validator synchronously changes `<input>` background based on
 input length.
 
@@ -43,6 +45,61 @@ function validateInput(event) {
 }
 ```
 
+### Asynchronous
+
+Asynchronous usage differs by having `done(boolean[, any])` callback as
+second argument for mapper function. `done` is called when asynchronous
+operation is ready. It takes validity boolean and optional second argument
+that is passed to aggregator as response data.
+
+```html
+<input id="search" onkeyup="doSearch(event)">
+```
+
+```js
+// Aggregator gets signaled when state changes. Data in responses array is
+// filled in the order that the corresponding mapper functions were registered.
+function aggregator(state, responses) {
+  switch (state) {
+    case Validation.Error:      // Exception thrown in mapper
+    case Validation.Invalid:    // Mapper indicated failure with false
+      indicateError("Problem performing search: " + responses.join(","))
+      break;
+    case Validation.Queued:      // Waiting throttle timeout
+    case Validation.Validating:  // Waiting backend to respond
+      indicateLoading();
+      break;
+    case Validation.Valid:       // Mapper indicated success with true
+      showSearchResults(responses)
+      break;
+  }
+}
+
+function mapSearch(query, done) {
+  var onError = function() { done(false, "Failed to perform search"); };
+  var onComplete = function(result) { done(result.isValid, result.items); };
+  asyncSearch(query, onComplete, onError);
+}
+
+// You can give additional settings for validation. {throttle: <ms>} *queues*
+// input given amount of milliseconds. When there is <ms> of no input, latest
+// input is passed to mapper functions.
+var validator = Validation.create(aggregator, mapSearch, {throttle: 200}).using('');
+
+function doSearch(event) {
+  validator.evaluate(event.target.value);
+}
+```
+
+### Options
+
+```js
+{
+  // Milliseconds of required input idle time until latest value is passed to mappers.
+  // default: 0
+  throttle: <ms>
+}
+```
 
 ## Development
 
